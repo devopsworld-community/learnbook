@@ -1,0 +1,59 @@
+#cloud-config
+# Broken VM 2 (Amazon Linux 2023): an nftables ruleset that blocks the app port AND, after the
+# next reboot, would block SSH. The agent must fix the live ruleset and the persisted one, and
+# must NOT flush the table blindly (test checks that the default-drop policy survives).
+hostname: broken-nft
+users:
+  - name: student
+    groups: [wheel]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      - REPLACE_WITH_LAB_PUBLIC_KEY
+packages: [nftables, python3, nmap-ncat]
+write_files:
+  - path: /usr/local/bin/app
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env python3
+      from http.server import HTTPServer, BaseHTTPRequestHandler
+      class H(BaseHTTPRequestHandler):
+          def do_GET(self):
+              self.send_response(200); self.end_headers(); self.wfile.write(b"app ok\n")
+      HTTPServer(("0.0.0.0", 8080), H).serve_forever()
+  - path: /etc/systemd/system/app.service
+    content: |
+      [Unit]
+      Description=Lab app on :8080
+      [Service]
+      ExecStart=/usr/local/bin/app
+      DynamicUser=yes
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/sysconfig/nftables.conf
+    content: |
+      #!/usr/sbin/nft -f
+      flush ruleset
+      table inet filter {
+        chain input {
+          type filter hook input priority 0; policy drop;
+          ct state established,related accept
+          iif lo accept
+          # Planted fault 1: typo in the SSH rule makes it match nothing (port 2 instead of 22)
+          tcp dport 2 accept
+          # Planted fault 2: the app port is dropped explicitly before the (absent) accept
+          tcp dport 8080 drop
+          icmp type echo-request accept
+        }
+        chain forward { type filter hook forward priority 0; policy drop; }
+        chain output  { type filter hook output  priority 0; policy accept; }
+      }
+runcmd:
+  - systemctl daemon-reload
+  - systemctl enable --now app
+  - systemctl enable nftables
+  # Load the broken persisted ruleset but keep SSH open on the LIVE ruleset so the lab is reachable.
+  - nft -f /etc/sysconfig/nftables.conf
+  - nft insert rule inet filter input tcp dport 22 accept
+  - echo "LAB READY: curl :8080 fails. Fix live AND persisted nftables. Do not lock yourself out." > /etc/motd

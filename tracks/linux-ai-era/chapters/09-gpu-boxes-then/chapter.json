@@ -1,0 +1,112 @@
+{
+ "title": "GPU boxes, then: drivers, DKMS, CUDA and shared notebooks",
+ "part": "Part 2 · Linux under AI systems, then and now",
+ "brief": "The ML servers of the last decade are still in every company: a kernel module, a driver, a toolkit, a notebook server and a scheduler, each with its own way to break.",
+ "gurus": [
+  "NVIDIA driver and CUDA documentation",
+  "SchedMD Slurm",
+  "Project Jupyter"
+ ],
+ "tools": [
+  "nvidia-smi",
+  "dkms status",
+  "modinfo nvidia",
+  "mokutil --sb-state",
+  "nvidia-persistenced",
+  "sinfo",
+  "sacct"
+ ],
+ "exercises": [
+  {
+   "id": "driver-vs-toolkit",
+   "type": "predict",
+   "concept": "gpu",
+   "verify": "nvidia",
+   "prompt": "nvidia-smi says 'CUDA Version: 12.4' and nvcc --version says 11.8. Which one is wrong?",
+   "options": [
+    "nvidia-smi",
+    "nvcc",
+    "Neither: nvidia-smi shows the newest CUDA version the driver supports, nvcc shows the installed toolkit, and 11.8 runs on a 12.4-capable driver",
+    "Both; reinstall CUDA"
+   ],
+   "answer": 2,
+   "explain": "The driver and the toolkit are separate installs. A toolkit at or below the driver's supported version works; a newer toolkit than the driver supports does not."
+  },
+  {
+   "id": "dkms-status",
+   "type": "recall",
+   "concept": "gpu",
+   "prompt": "Which command shows whether the NVIDIA module has been built for each installed kernel?",
+   "accept": [
+    "^(sudo\\s+)?dkms\\s+status\\b"
+   ],
+   "answer_text": "dkms status",
+   "explain": "It lists module, version, kernel and state (installed, built, or missing) for every kernel on the box."
+  },
+  {
+   "id": "nouveau",
+   "type": "fix",
+   "concept": "gpu",
+   "file": "blacklist-nouveau.conf",
+   "prompt": "This modprobe file blacklists the wrong driver. Before NVIDIA's driver is installed, nouveau must not load and must not set a display mode.",
+   "hint": "blacklist nouveau, and options nouveau modeset=0. Then rebuild the initramfs (update-initramfs -u or dracut --force) and reboot.",
+   "explain": "Two drivers cannot own the same GPU. Rebuild the initramfs so nouveau is not loaded at early boot. Distribution packages of the NVIDIA driver usually install this file for you; knowing it exists is what saves you when they did not.",
+   "checks": [
+    {
+     "name": "nouveau is blacklisted",
+     "re": "^blacklist\\s+nouveau\\s*$"
+    },
+    {
+     "name": "the NVIDIA driver itself is not blacklisted",
+     "not_re": "^blacklist\\s+nvidia"
+    },
+    {
+     "name": "nouveau does not set a display mode",
+     "re": "^options\\s+nouveau\\s+modeset=0\\s*$"
+    }
+   ]
+  },
+  {
+   "id": "open-notebook",
+   "type": "predict",
+   "concept": "gpu",
+   "prompt": "A data scientist starts `jupyter lab --ip 0.0.0.0` on the shared GPU box with the token turned off. What did they just give the network?",
+   "options": [
+    "Read-only access to their notebooks",
+    "A shell as their user on the GPU box: Jupyter runs arbitrary code and can open terminals",
+    "Nothing; Jupyter only serves HTML",
+    "Access to the GPU only"
+   ],
+   "answer": 1,
+   "explain": "Bind it to localhost and tunnel (ssh -L 8888:localhost:8888), or put JupyterHub with real authentication in front. Exposed notebooks were a way into ML boxes long before exposed LLM servers."
+  },
+  {
+   "id": "persistence",
+   "type": "predict",
+   "concept": "gpu",
+   "prompt": "On a headless GPU server, the first CUDA call after the GPUs sit idle takes several seconds. What is the usual fix?",
+   "options": [
+    "Upgrade CUDA",
+    "Run nvidia-persistenced, so the driver keeps the GPUs initialized when no process is using them",
+    "Disable ECC",
+    "Add swap"
+   ],
+   "answer": 1,
+   "explain": "Without a client holding the device, the driver tears down GPU state and rebuilds it on next use. NVIDIA recommends the persistence daemon on headless Linux systems."
+  },
+  {
+   "id": "slurm-oom",
+   "type": "predict",
+   "concept": "cgroup",
+   "prompt": "A training job on a shared Slurm cluster dies with an 'oom-kill event', although the node has hundreds of GB free. Why?",
+   "options": [
+    "Slurm has a bug",
+    "The job used more than it requested (--mem); Slurm confines each job in a cgroup and the kernel enforces that limit",
+    "The GPU ran out of memory",
+    "Another user killed it"
+   ],
+   "answer": 1,
+   "explain": "With cgroup confinement the requested memory is the job's hard limit. Size requests from evidence: sacct shows MaxRSS for past runs. A GPU running out of memory fails with a CUDA error, not a kernel OOM kill."
+  }
+ ]
+}

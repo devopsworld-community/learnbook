@@ -1,0 +1,88 @@
+{
+ "title": "Read-only on call: Kubernetes with k8sgpt and HolmesGPT",
+ "part": "Part 3 · AI as your co-admin, behind gates",
+ "brief": "Three faults in namespace shop, two investigators, zero write verbs. The API server's audit log, not the agent, says what happened.",
+ "gurus": [
+  "STCLab, runbooks over models",
+  "k8sgpt",
+  "HolmesGPT"
+ ],
+ "tools": [
+  "kind",
+  "kubectl auth can-i",
+  "k8sgpt --anonymize",
+  "holmes",
+  "API server audit log"
+ ],
+ "exercises": [
+  {
+   "id": "runbooks-over-models",
+   "type": "predict",
+   "concept": "k8s",
+   "prompt": "STCLab added runbook exclusion rules to HolmesGPT. Wasted tool calls per investigation went from:",
+   "options": [
+    "16 to 2",
+    "100 to 50",
+    "2 to 16",
+    "They did not measure it"
+   ],
+   "answer": 0,
+   "explain": "16 to 2, with a rubric score of 4.6/5 with runbooks against 3.6/5 without, at about $0.04 per investigation. Their lesson: runbooks over models. The model did not get smarter; they told it what not to do.",
+   "source": "labs/lab06-k8s-incident/runbooks/shop-oomkilled.md"
+  },
+  {
+   "id": "clusterrole",
+   "type": "predict",
+   "concept": "k8s",
+   "prompt": "The lab's ClusterRole for the investigators deliberately omits which of these?",
+   "options": [
+    "get pods",
+    "list events",
+    "get secrets, pods/exec, and every write verb",
+    "get nodes"
+   ],
+   "answer": 2,
+   "explain": "Read-only is a verb list on the server. drill.sh prove-ro runs kubectl auth can-i for each identity; every answer on secrets, exec and writes must be no before any agent runs.",
+   "source": "labs/lab06-k8s-incident/manifests/20-rbac-readonly.yaml"
+  },
+  {
+   "id": "anonymize",
+   "type": "predict",
+   "concept": "k8s",
+   "prompt": "k8sgpt's --anonymize masks resource names before they reach the model. Which of these does it NOT cover, per its own docs?",
+   "options": [
+    "Deployments",
+    "Services",
+    "Pods, logs, events, PVCs and ReplicaSets",
+    "Ingresses"
+   ],
+   "answer": 2,
+   "explain": "With a cloud backend you are still sending pod names and log lines. With a local model it matters less. Know what your privacy flag actually does.",
+   "source": "labs/lab06-k8s-incident/scripts/drill.sh"
+  },
+  {
+   "id": "selector-typo",
+   "type": "predict",
+   "concept": "k8s",
+   "prompt": "The frontend logs 'connect to catalog.shop.svc:80 failed'. The runbook-free agent will probably blame the network. What is the planted cause?",
+   "options": [
+    "CoreDNS is down",
+    "The Service selector says app=catalogue; the pods are labelled app=catalog",
+    "A NetworkPolicy blocks it",
+    "The frontend image is wrong"
+   ],
+   "answer": 1,
+   "explain": "A Service whose selector matches nothing has no endpoints: DNS resolves and every connection is refused. k8sgpt's deterministic analyzer catches it without an LLM; the model only writes the explanation.",
+   "source": "labs/lab06-k8s-incident/manifests/12-fault-dns.yaml"
+  },
+  {
+   "id": "lab06-audit",
+   "type": "lab",
+   "concept": "k8s",
+   "probe": "lab06_audit",
+   "prompt": "Run the drill for real. Cleared when the audit summary exists; it must show no write verbs.",
+   "run": "make -C tracks/linux-ai-era lab06-up lab06-drill",
+   "hint": "Needs Docker and kind. Compare the holmes-bare and holmes-rb call counts; that is your version of 16 to 2."
+  }
+ ]
+}

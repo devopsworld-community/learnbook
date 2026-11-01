@@ -1,0 +1,13 @@
+# /etc/logrotate.d/chatty
+# appuser writes /srv/app/logs/app.log and owns /srv/app/logs. Rotation should run as the directory's
+# owner, and after rotation the app must still be able to write the new file.
+/srv/app/logs/app.log {
+    su appuser appuser
+    size 5M
+    rotate 3
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 appuser appuser
+}

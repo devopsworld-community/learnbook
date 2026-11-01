@@ -1,0 +1,146 @@
+{
+ "title": "Networking from the box",
+ "part": "Part 1 · The box, the way the gurus run it",
+ "brief": "Who is listening, who can reach them, which resolver answers, and what is on the wire. Then change the firewall without locking yourself out.",
+ "gurus": [
+  "W. Richard Stevens, TCP/IP Illustrated",
+  "Julia Evans, networking zines"
+ ],
+ "tools": [
+  "ip",
+  "ss",
+  "dig",
+  "resolvectl",
+  "curl -v",
+  "tcpdump",
+  "nft",
+  "mtr"
+ ],
+ "exercises": [
+  {
+   "id": "exposed-11434",
+   "type": "predict",
+   "concept": "net",
+   "verify": "ollama",
+   "prompt": "`ss -ltnp` on your inference box shows `LISTEN 0 4096 0.0.0.0:11434 users:((\"ollama\",...))`. What does that mean?",
+   "options": [
+    "Only local processes can reach Ollama",
+    "Ollama accepts connections on every interface; without a firewall rule, anyone who can reach the box can use your model",
+    "Ollama listens on IPv6 only",
+    "The port is closed"
+   ],
+   "answer": 1,
+   "explain": "0.0.0.0 is every IPv4 address the host has. The hardened unit in setup/01-ollama-systemd.sh binds 127.0.0.1:11434; the research behind this course counted about 175,000 publicly exposed Ollama instances in 2026.",
+   "source": "setup/01-ollama-systemd.sh"
+  },
+  {
+   "id": "ss-ltnp",
+   "type": "recall",
+   "concept": "net",
+   "prompt": "List listening TCP sockets with the process that owns each one.",
+   "accept": [
+    "^(sudo\\s+)?ss\\s+-(?=[a-z]*l)(?=[a-z]*t)(?=[a-z]*p)[a-z]+\\b",
+    "^(sudo\\s+)?lsof\\s+.*-iTCP.*LISTEN"
+   ],
+   "answer_text": "sudo ss -ltnp",
+   "explain": "-l listening, -t TCP, -n no name lookups, -p process (needs root to see other users' processes)."
+  },
+  {
+   "id": "resolver-vs-dig",
+   "type": "predict",
+   "concept": "net",
+   "prompt": "`curl https://api.internal` fails with 'Could not resolve host', but `dig @10.0.0.2 api.internal` returns an address. Where do you look next?",
+   "options": [
+    "The TLS certificate",
+    "The system resolver: resolvectl status (or /etc/resolv.conf) shows which DNS server the host actually asks, and it is not 10.0.0.2",
+    "The firewall on port 443",
+    "The record's TTL"
+   ],
+   "answer": 1,
+   "explain": "dig @server asks that server directly. curl uses the system resolver. When one works and the other does not, the difference is the resolver configuration, not the DNS record."
+  },
+  {
+   "id": "nft-inference-host",
+   "type": "fix",
+   "concept": "net",
+   "file": "nftables.conf",
+   "prompt": "Fix this persisted ruleset: SSH on 22 and the app on 8080 must be reachable, Ollama on 11434 must only be reachable from the host itself, and the default-drop policy must stay.",
+   "hint": "Fix the port-2 typo, turn the 8080 drop into an accept, and delete the 11434 accept: `iif lo accept` already lets local processes in. Keep `policy drop`. On a real host validate with sudo nft -c -f <file> before applying.",
+   "explain": "The ruleset is fixed in the file first, validated, then applied atomically; that is the order Lab 5's VM 2 tests for. Local processes reach Ollama through the loopback accept, so the model port never needs to be open on the network.",
+   "source": "labs/lab05-broken-vms/solutions/fix-nft.yml",
+   "checks": [
+    {
+     "name": "SSH (22) accepted",
+     "re": "^\\s*tcp dport 22 accept\\s*$"
+    },
+    {
+     "name": "the port-2 typo is gone",
+     "not_re": "tcp dport 2 accept"
+    },
+    {
+     "name": "app port 8080 accepted",
+     "re": "^\\s*tcp dport 8080 accept\\s*$"
+    },
+    {
+     "name": "8080 no longer dropped",
+     "not_re": "tcp dport 8080 drop"
+    },
+    {
+     "name": "Ollama (11434) is not opened to the network",
+     "not_re": "^\\s*tcp dport 11434 accept"
+    },
+    {
+     "name": "default-drop policy kept on input",
+     "re": "type filter hook input priority 0; policy drop;"
+    },
+    {
+     "name": "loopback accepted",
+     "re": "^\\s*(iif|iifname)\\s+\"?lo\"?\\s+accept"
+    },
+    {
+     "name": "replies to your own connections accepted",
+     "re": "ct state (established,related|related,established) accept"
+    },
+    {
+     "name": "braces balanced",
+     "balanced": "{}"
+    },
+    {
+     "name": "nft -c -f (advisory: needs Linux and privileges)",
+     "tool": [
+      "nft",
+      "-c",
+      "-f",
+      "{file}"
+     ],
+     "advisory": true
+    }
+   ]
+  },
+  {
+   "id": "firewall-order",
+   "type": "predict",
+   "concept": "net",
+   "prompt": "You must change the firewall on a remote host. What is the safe sequence?",
+   "options": [
+    "nft flush ruleset, then add the rules you need",
+    "Edit the persisted file, validate with nft -c -f, schedule a timed rollback, apply atomically with nft -f, prove SSH from a second session, cancel the rollback",
+    "Disable the firewall, change it, enable it",
+    "Reboot to load the new rules"
+   ],
+   "answer": 1,
+   "explain": "nft -f replaces the ruleset in one transaction, so there is never a moment with no rules. The timed rollback saves you if the new rules lock you out; cancel it once a second login works."
+  },
+  {
+   "id": "tcpdump",
+   "type": "recall",
+   "concept": "net",
+   "prompt": "Capture traffic to or from port 11434 on every interface, without resolving names.",
+   "accept": [
+    "^(sudo\\s+)?tcpdump\\b(?=.*\\s-\\w*n)(?=.*-\\w*i\\s*any)(?=.*port\\s+11434)"
+   ],
+   "answer_text": "sudo tcpdump -ni any port 11434",
+   "explain": "-n skips DNS and port-name lookups (which can hang or generate their own traffic), -i any listens on every interface."
+  }
+ ]
+}

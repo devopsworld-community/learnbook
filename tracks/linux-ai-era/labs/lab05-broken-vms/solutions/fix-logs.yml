@@ -1,0 +1,15 @@
+# Oracle fix for the Rocky logrotate VM: ownership, create mode, SELinux context. All three.
+- hosts: all
+  become: true
+  tasks:
+    - name: Log directory owned by the writing user
+      file: { path: /srv/app/logs, owner: appuser, group: appuser, mode: "0750", state: directory }
+    - name: logrotate creates files the app can write
+      replace: { path: /etc/logrotate.d/chatty, regexp: 'create 0600 root root', replace: 'create 0640 appuser appuser' }
+    - name: Label the directory as log data for SELinux
+      community.general.sefcontext: { target: '/srv/app/logs(/.*)?', setype: var_log_t, state: present }
+    - name: Apply the new context
+      command: restorecon -Rv /srv/app/logs
+    - name: Dry-run logrotate and fail on any error
+      shell: logrotate -d /etc/logrotate.d/chatty 2>&1 | grep -i error && exit 1 || true
+      changed_when: false

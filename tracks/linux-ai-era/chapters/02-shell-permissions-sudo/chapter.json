@@ -1,0 +1,120 @@
+{
+ "title": "The shell, permissions and sudo",
+ "part": "Part 1 · The box, the way the gurus run it",
+ "brief": "Most 'Permission denied' tickets are one missing bit on one directory. Find it in one command, and give sudo out by the command, not by the person.",
+ "gurus": [
+  "Evi Nemeth et al., UNIX and Linux System Administration Handbook",
+  "Julia Evans, wizard zines"
+ ],
+ "tools": [
+  "namei",
+  "stat",
+  "find",
+  "getfacl",
+  "sudo -l",
+  "visudo -c"
+ ],
+ "exercises": [
+  {
+   "id": "mode-640",
+   "type": "predict",
+   "concept": "perms",
+   "prompt": "/srv/app/config.yml is owned by app:app with mode 640. What can a member of the app group (not the app user itself) do with it?",
+   "options": [
+    "Read and write it",
+    "Read it only",
+    "Nothing",
+    "Read and execute it"
+   ],
+   "answer": 1,
+   "explain": "6 is rw- for the owner, 4 is r-- for the group, 0 is --- for everyone else. The kernel applies the first class that matches you (owner, then group, then other) and only that one."
+  },
+  {
+   "id": "search-bit",
+   "type": "predict",
+   "concept": "perms",
+   "prompt": "appuser gets 'Permission denied' opening /srv/app/logs/app.log. The file is appuser:appuser 0644. /srv/app is root:root 0700. Why?",
+   "options": [
+    "The file needs 0666",
+    "appuser needs execute (search) permission on every directory in the path, and /srv/app gives it none",
+    "SELinux always blocks /srv",
+    "The file must be owned by root"
+   ],
+   "answer": 1,
+   "explain": "Opening a path needs x on every directory above it. namei -l prints owner and mode for each component, so the blocking directory jumps out. Check the plain mode bits before you suspect SELinux."
+  },
+  {
+   "id": "namei",
+   "type": "recall",
+   "concept": "perms",
+   "prompt": "Which single command shows owner and mode for every directory on the path to /srv/app/logs/app.log?",
+   "accept": [
+    "^(sudo\\s+)?namei\\s+(-\\w*[lm]\\w*|--long|--modes)\\b"
+   ],
+   "answer_text": "namei -l /srv/app/logs/app.log",
+   "explain": "namei comes with util-linux on almost every distribution; -l is long format (owner, group, mode)."
+  },
+  {
+   "id": "sudo-least-privilege",
+   "type": "fix",
+   "concept": "perms",
+   "file": "deploy.sudoers",
+   "prompt": "The deploy user has passwordless root for everything. Give it exactly what a release needs: restart and status of app.service, as root, by full path. Nothing else.",
+   "hint": "Use a Cmnd_Alias with full paths (/usr/bin/systemctl restart app.service, ...) and give deploy only that alias, as (root). Check the syntax with visudo -c -f <file>; never install a sudoers file that visudo has not parsed.",
+   "explain": "Least privilege in sudo means full paths, exact arguments, a named target user, and visudo before install. A broken file in /etc/sudoers.d can take sudo away from everyone, which is why visudo -c exists.",
+   "checks": [
+    {
+     "name": "deploy no longer gets every command",
+     "not_re": "^\\s*deploy\\s+ALL\\s*=\\s*\\([^)]*\\)\\s*(NOPASSWD:\\s*)?ALL\\s*$"
+    },
+    {
+     "name": "no NOPASSWD: ALL anywhere",
+     "not_re": "NOPASSWD:\\s*ALL\\b"
+    },
+    {
+     "name": "restart of app.service allowed, by full path",
+     "re": "/usr/bin/systemctl\\s+restart\\s+app\\.service"
+    },
+    {
+     "name": "status of app.service allowed, by full path",
+     "re": "/usr/bin/systemctl\\s+status\\s+app\\.service"
+    },
+    {
+     "name": "no bare command names (sudo matches full paths)",
+     "not_re": "^[^#\\n]*[=,:]\\s*systemctl\\b"
+    },
+    {
+     "name": "no wildcards in the rules",
+     "not_re": "^[^#\\n]*\\*"
+    },
+    {
+     "name": "deploy runs them as root only",
+     "re": "^\\s*deploy\\s+ALL\\s*=\\s*\\(root\\)"
+    },
+    {
+     "name": "visudo parses the file",
+     "tool": [
+      "visudo",
+      "-c",
+      "-f",
+      "{file}"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "agent-chmod-777",
+   "type": "predict",
+   "concept": "perms",
+   "prompt": "An AI agent proposes `chmod -R 777 /srv/app` to fix that Permission denied. What do you do?",
+   "options": [
+    "Approve it; it is only a lab",
+    "Refuse, find the one missing bit with namei -l, and grant exactly that (here: x on /srv/app for appuser or its group)",
+    "Approve it and revert later",
+    "Run it with sudo so it definitely works"
+   ],
+   "answer": 1,
+   "explain": "777 makes every file writable by every user and process on the box, including whatever exploits the app next. The fix is the smallest change: one directory, one permission, one principal. Part 3's gates enforce the same rule on the agent."
+  }
+ ]
+}

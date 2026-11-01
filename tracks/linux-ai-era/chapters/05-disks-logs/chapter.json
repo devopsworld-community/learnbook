@@ -1,0 +1,132 @@
+{
+ "title": "Disks, logs and the 3 am disk-full drill",
+ "part": "Part 1 · The box, the way the gurus run it",
+ "brief": "Full disks have four usual causes: a deleted file still open, inodes, a runaway log, and data that should never have lived on that filesystem. Model weights are the new fourth.",
+ "gurus": [
+  "Thomas A. Limoncelli et al., The Practice of System and Network Administration"
+ ],
+ "tools": [
+  "df -h",
+  "df -i",
+  "du -xh",
+  "ncdu -x",
+  "lsof +L1",
+  "lvextend -r",
+  "journalctl --disk-usage",
+  "logrotate -d"
+ ],
+ "exercises": [
+  {
+   "id": "deleted-but-open",
+   "type": "predict",
+   "concept": "disk",
+   "verify": "deleted_open",
+   "prompt": "df -h / says 100% used, but du -xsh / adds up to 20 GB less. What is the most likely cause?",
+   "options": [
+    "du cannot read /proc",
+    "A deleted file that a running process still holds open, usually a log",
+    "The filesystem needs fsck",
+    "The disk is mounted twice"
+   ],
+   "answer": 1,
+   "explain": "Deleting only removes the name; the blocks are freed when the last process closes the file. lsof +L1 lists open files with no links left. Restart the process, or truncate through /proc/<pid>/fd/<n>, to get the space back."
+  },
+  {
+   "id": "lsof-L1",
+   "type": "recall",
+   "concept": "disk",
+   "prompt": "List files that are deleted but still held open by a process.",
+   "accept": [
+    "^(sudo\\s+)?lsof\\s+(.*\\s)?\\+L\\s*1\\b",
+    "find\\s+/proc/\\S*fd.*deleted"
+   ],
+   "answer_text": "sudo lsof +L1",
+   "explain": "+L1 selects files with a link count below 1, which is what a deleted-but-open file is."
+  },
+  {
+   "id": "inodes",
+   "type": "predict",
+   "concept": "disk",
+   "verify": "inodes",
+   "prompt": "`touch /var/tmp/x` fails with 'No space left on device', yet df -h shows 40% free. What do you check?",
+   "options": [
+    "The disk is failing; replace it",
+    "Inodes, with df -i: millions of tiny files can use every inode before the blocks run out",
+    "Quotas for root",
+    "Whether the mount is read-only"
+   ],
+   "answer": 1,
+   "explain": "Every file needs an inode, and ext4 fixes the inode count when the filesystem is made. df -i shows it. A read-only mount fails with 'Read-only file system', not with no space."
+  },
+  {
+   "id": "model-store-full",
+   "type": "predict",
+   "concept": "disk",
+   "prompt": "Your inference box filled /var overnight. du -xh --max-depth=3 /var | sort -h ends with /var/lib/ollama/models at 180G. What is the fix?",
+   "options": [
+    "rm -rf the biggest blob files by hand",
+    "Give model storage its own volume (OLLAMA_MODELS, HF_HOME), cap it, and remove unused models with the tool's own command (ollama rm, huggingface-cli delete-cache)",
+    "Raise the journald size limit",
+    "Turn off swap"
+   ],
+   "answer": 1,
+   "explain": "Weights are tens of gigabytes each. Deleting blobs by hand breaks every model whose manifest still points at them; the tools know which layers are shared. On its own volume, a full model store cannot take down journald, apt and the database."
+  },
+  {
+   "id": "lvextend",
+   "type": "recall",
+   "concept": "disk",
+   "prompt": "The logical volume vg0/var needs 50 GB more, and its filesystem must grow with it, online, in one command.",
+   "accept": [
+    "^(sudo\\s+)?lvextend\\b(?=.*(\\s-\\w*r\\w*\\b|--resizefs))(?=.*50G)"
+   ],
+   "answer_text": "sudo lvextend -r -L +50G vg0/var",
+   "explain": "-r (--resizefs) runs the filesystem resize after the LV grows, so you cannot forget it. ext4 and XFS both grow online."
+  },
+  {
+   "id": "logrotate-stanza",
+   "type": "fix",
+   "concept": "disk",
+   "file": "chatty.logrotate",
+   "prompt": "This logrotate rule leaves the app unable to write after rotation. Rotate as the directory's owner, create the new file for appuser, and stop mixing create with copytruncate.",
+   "hint": "Add `su appuser appuser`, change create to `create 0640 appuser appuser`, and drop copytruncate (the app reopens its log on every write, so create is enough). Dry-run on a real host with sudo logrotate -d /etc/logrotate.d/chatty.",
+   "explain": "With copytruncate, logrotate copies the log and truncates it in place, so `create` never runs: pick one. `su` makes logrotate rotate as the directory's owner, so rotated files keep the right owner and logrotate does not refuse a directory that a non-root group can write. Lab 5's VM 3 hides two more causes behind the same symptom: directory ownership and an SELinux label.",
+   "source": "labs/lab05-broken-vms/cloud-init/rocky-logrotate-perms.yaml",
+   "checks": [
+    {
+     "name": "rotates as the directory's owner (su appuser appuser)",
+     "re": "^\\s*su\\s+appuser\\s+appuser\\s*$"
+    },
+    {
+     "name": "new file is created for appuser to write",
+     "re": "^\\s*create\\s+06[46]0\\s+appuser\\s+appuser\\s*$"
+    },
+    {
+     "name": "no root-owned 0600 file after rotation",
+     "not_re": "create\\s+0600\\s+root\\s+root"
+    },
+    {
+     "name": "create and copytruncate are not both set (copytruncate makes create a no-op)",
+     "not_re": "(?s)\\A(?=.*^\\s*copytruncate\\b)(?=.*^\\s*create\\b)"
+    },
+    {
+     "name": "keeps a bounded number of old logs",
+     "re": "^\\s*rotate\\s+\\d+\\s*$"
+    },
+    {
+     "name": "braces balanced",
+     "balanced": "{}"
+    },
+    {
+     "name": "logrotate -d dry run (advisory)",
+     "tool": [
+      "logrotate",
+      "-d",
+      "{file}"
+     ],
+     "advisory": true
+    }
+   ]
+  }
+ ]
+}

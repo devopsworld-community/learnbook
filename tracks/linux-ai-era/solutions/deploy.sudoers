@@ -1,0 +1,4 @@
+# /etc/sudoers.d/deploy
+# The deploy user only needs to restart and check app.service during a release.
+Cmnd_Alias APP_SVC = /usr/bin/systemctl restart app.service, /usr/bin/systemctl status app.service
+deploy ALL=(root) NOPASSWD: APP_SVC

@@ -1,0 +1,14 @@
+# Fault 2: ImagePullBackOff. Tag typo in a private-looking registry path.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: checkout, namespace: shop, labels: { app: checkout } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: checkout } }
+  template:
+    metadata: { labels: { app: checkout } }
+    spec:
+      containers:
+        - name: checkout
+          image: ghcr.io/thedevopsworld/checkout:v1.4.2-rc1-typo
+          ports: [{ containerPort: 8080 }]

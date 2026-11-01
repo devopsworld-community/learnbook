@@ -1,0 +1,15 @@
+# Oracle fix for the Debian OOM VM. Applied via agent-over-ssh.sh apply <host> solutions/fix-oom.yml
+- hosts: all
+  become: true
+  tasks:
+    - name: Raise the cgroup v2 memory ceiling via a drop-in (never edit the vendor unit)
+      copy:
+        dest: /etc/systemd/system/metrics-collector.service.d/override.conf
+        content: |
+          [Service]
+          MemoryMax=512M
+          MemoryHigh=400M
+      notify: reload and restart
+  handlers:
+    - name: reload and restart
+      systemd: { daemon_reload: true, name: metrics-collector, state: restarted }

@@ -1,0 +1,12 @@
+# learner state: your edits and your progress never go into git
+workspace/
+.learnbook/
+BOOK.md
+# lab results stay on the machine that produced them
+tracks/*/labs/lab01-baseline/results.csv
+tracks/*/labs/lab06-k8s-incident/results.csv
+tracks/*/labs/lab07-poisoned-logs/results/*.csv
+!tracks/*/labs/lab07-poisoned-logs/results/.schema.csv
+__pycache__/
+*.pyc
+.DS_Store

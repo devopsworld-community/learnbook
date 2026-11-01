@@ -1,0 +1,36 @@
+# Fault 3: a Service whose selector matches nothing, so DNS resolves but every connection fails.
+# The symptom in the frontend logs looks like "connection refused to catalog.shop.svc".
+apiVersion: v1
+kind: Service
+metadata: { name: catalog, namespace: shop }
+spec:
+  selector: { app: catalogue }      # planted typo: pods are labelled app=catalog
+  ports: [{ port: 80, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: catalog, namespace: shop }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: catalog } }
+  template:
+    metadata: { labels: { app: catalog } }
+    spec:
+      containers:
+        - name: catalog
+          image: hashicorp/http-echo:1.0
+          args: ["-listen=:8080", "-text=catalog ok"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: frontend, namespace: shop }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: frontend } }
+  template:
+    metadata: { labels: { app: frontend } }
+    spec:
+      containers:
+        - name: frontend
+          image: curlimages/curl:8.10.1
+          command: ["sh", "-c", "while true; do curl -s --max-time 2 http://catalog.shop.svc/ || echo \"$(date -Is) ERROR connect to catalog.shop.svc:80 failed\"; sleep 3; done"]

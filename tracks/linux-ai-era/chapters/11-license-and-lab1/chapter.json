@@ -1,0 +1,206 @@
+{
+ "title": "The license test, the local stack and Lab 1",
+ "part": "Part 3 · AI as your co-admin, behind gates",
+ "brief": "Read the LICENSE before anything runs on your machine. Then the same broken nginx three ways: in the browser, by hand in Docker, and with the agent.",
+ "gurus": [
+  "Terminal-Bench / Harbor task format"
+ ],
+ "tools": [
+  "Ollama",
+  "devstral:24b",
+  "gpt-oss:20b",
+  "OpenCode (plan agent)",
+  "aichat",
+  "llm",
+  "Docker"
+ ],
+ "exercises": [
+  {
+   "id": "license-sort",
+   "type": "sort",
+   "concept": "license",
+   "prompt": "Sort these tools. Which are OSI-approved open source, going by their LICENSE files on 31 Oct 2026?",
+   "buckets": [
+    "Open source (OSI)",
+    "Not OSI"
+   ],
+   "items": [
+    [
+     "OpenCode",
+     0
+    ],
+    [
+     "Goose",
+     0
+    ],
+    [
+     "Codex CLI",
+     0
+    ],
+    [
+     "Gemini CLI",
+     0
+    ],
+    [
+     "Cline",
+     0
+    ],
+    [
+     "aider",
+     0
+    ],
+    [
+     "HolmesGPT",
+     0
+    ],
+    [
+     "k8sgpt",
+     0
+    ],
+    [
+     "Ollama",
+     0
+    ],
+    [
+     "llama.cpp",
+     0
+    ],
+    [
+     "vLLM",
+     0
+    ],
+    [
+     "Claude Code",
+     1
+    ],
+    [
+     "Crush",
+     1
+    ],
+    [
+     "Warp AI tier",
+     1
+    ],
+    [
+     "Ansible Lightspeed",
+     1
+    ],
+    [
+     "LM Studio",
+     1
+    ]
+   ],
+   "explain": "Claude Code's LICENSE.md says 'All rights reserved'. Crush is FSL-1.1-MIT, source-available but not OSI. Warp's client went AGPL in April 2026 but the AI tier phones home. Ansible Lightspeed is a Red Hat subscription. Teach the proprietary ones as what you will meet at work, not as the stack.",
+   "cite": "Author's research notes, research/open-source-ai-tools-linux-admin.md (not published in this repo yet)"
+  },
+  {
+   "id": "default-models",
+   "type": "predict",
+   "concept": "license",
+   "prompt": "Which two open-weight models does the course ship as defaults, and why those two?",
+   "options": [
+    "Qwen3-coder and GLM, because they score highest",
+    "devstral:24b and gpt-oss:20b, because their Apache-2.0 weight licenses were verified at the source",
+    "Llama 3.3 70B and Gemma 3, because they are the most popular",
+    "Any model Ollama lists; licenses do not matter locally"
+   ],
+   "answer": 1,
+   "explain": "Qwen and GLM may be fine, but their weight licenses could not be verified from a primary source, so they are not defaults. Local does not mean license-free.",
+   "source": "setup/01-ollama-systemd.sh"
+  },
+  {
+   "id": "local-is-not-safe",
+   "type": "predict",
+   "concept": "injection",
+   "prompt": "A local open-weight model is safer against prompt injection than a cloud model, because your data never leaves the machine. True or false?",
+   "options": [
+    "True",
+    "False"
+   ],
+   "answer": 1,
+   "explain": "False. Local inference buys sovereignty, not resistance to manipulation: in LogJack, Llama 3.3 70B obeyed poisoned logs 86% of the time, and open-weight models also hallucinate package names more often. The control is the gate, not the model.",
+   "source": "labs/lab07-poisoned-logs/README.md"
+  },
+  {
+   "id": "nginx-by-hand",
+   "type": "fix",
+   "concept": "verify",
+   "file": "nginx.conf",
+   "prompt": "Lab 1, by hand first. Fix this nginx.conf so nginx would parse it, / serves /var/www/app, /health returns 200 with the body ok, and /private/ is not served. Fix it; do not replace it.",
+   "hint": "Four faults: worker_processes takes auto or a number; the root line is missing its semicolon; /health returns the wrong status and body; /private/ aliases a directory it should deny (and lists it). Read tests/test.sh in the lab for what the container checks.",
+   "explain": "All static checks pass. The real judge is the container: make lab01 runs nginx -t and curl against your fix, and the hidden tests check the final state, never the commands you typed.",
+   "source": "labs/lab01-baseline/task-nginx-config/instruction.md",
+   "checks": [
+    {
+     "name": "worker_processes is a value nginx accepts (auto or a number)",
+     "re": "worker_processes\\s+(auto|\\d+)\\s*;"
+    },
+    {
+     "name": "the root directive ends with a semicolon",
+     "re": "root\\s+/var/www/app\\s*;"
+    },
+    {
+     "name": "the site still serves from /var/www/app",
+     "re": "/var/www/app"
+    },
+    {
+     "name": "/health returns 200 with body ok",
+     "re": "location\\s+/health\\s*\\{[^}]*return\\s+200\\s+\"?ok\"?\\s*;"
+    },
+    {
+     "name": "/private/ is not aliased to /var/www/private",
+     "not_re": "alias\\s+/var/www/private"
+    },
+    {
+     "name": "/private/ is denied or absent",
+     "not_re": "location\\s+/private/\\s*\\{(?![^}]*(deny\\s+all|return\\s+40[34]))"
+    },
+    {
+     "name": "no autoindex left on",
+     "not_re": "autoindex\\s+on"
+    },
+    {
+     "name": "braces balanced",
+     "balanced": "{}"
+    },
+    {
+     "name": "edited, not replaced (events, http, mime.types, server kept)",
+     "re": "(?s)events\\s*\\{.*http\\s*\\{.*include\\s+/etc/nginx/mime\\.types.*server\\s*\\{"
+    }
+   ]
+  },
+  {
+   "id": "harbor-rule",
+   "type": "predict",
+   "concept": "verify",
+   "prompt": "Before the agent runs on Lab 1 you run `run.sh validate`. What two things must it prove?",
+   "options": [
+    "The model is loaded and the GPU is free",
+    "A no-op fails the tests and the oracle solution passes them",
+    "The container builds and nginx starts",
+    "The agent config is valid JSON"
+   ],
+   "answer": 1,
+   "explain": "That is the Harbor rule from Terminal-Bench. A task where doing nothing passes, or where the reference fix fails, measures nothing. This learnbook applies the same rule to itself: ./lb validate proves every broken file fails and every solution passes.",
+   "source": "labs/lab01-baseline/run.sh"
+  },
+  {
+   "id": "lab01-manual",
+   "type": "lab",
+   "concept": "verify",
+   "probe": "lab01_manual",
+   "prompt": "Run Lab 1 by hand, for real. Cleared when results.csv shows a manual run passing 9/9.",
+   "run": "make -C tracks/linux-ai-era lab01",
+   "hint": "Needs Docker. Type exit inside the container when /tests/test.sh passes; the timing is recorded either way."
+  },
+  {
+   "id": "lab01-agent",
+   "type": "lab",
+   "concept": "verify",
+   "probe": "lab01_agent",
+   "prompt": "Now the agent, on the local model. Approve each command. Cleared when an agent run passes 9/9; then compare the two timings honestly.",
+   "run": "make -C tracks/linux-ai-era lab01-agent MODEL=ollama/devstral:24b",
+   "hint": "Expect the local model to be slower than you and to try nginx -s reload before nginx -t. That is the lesson, not a failure of the lab."
+  }
+ ]
+}

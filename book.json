@@ -1,0 +1,189 @@
+{
+ "title": "The DevOps World Learnbook",
+ "tagline": "Read it, play it, run it.",
+ "series": "DevOps World course series, 2026",
+ "description": "One book, many tracks, one engine. Each track is a course from the DevOps World series: lessons you can read, exercises you play in the browser or in the terminal, and real labs whose result files count toward your progress. Every course starts at L0 (never done it) and ends at L3+ (runs it in production).",
+ "ways": [
+  {
+   "name": "Play it in the browser",
+   "how": "A local, gamified view: chapters unlock as you go, XP, spaced review and a delayed quiz.",
+   "cmd": "make play"
+  },
+  {
+   "name": "Work it in the terminal",
+   "how": "Rustlings style: the next exercise opens, your file is re-checked on every save, you move on when it passes.",
+   "cmd": "./lb watch"
+  },
+  {
+   "name": "Read it as a book",
+   "how": "Every chapter is a Markdown lesson in the repo, or export the whole track as one file.",
+   "cmd": "./lb export md --out BOOK.md"
+  },
+  {
+   "name": "Feed it to other tools",
+   "how": "The same content as JSON for a content pipeline, an LMS, a community classroom or an AI tutor.",
+   "cmd": "./lb export json --out track.json"
+  },
+  {
+   "name": "Run the real labs",
+   "how": "Docker, VMs and kind clusters. The game only clears lab rounds from the result files the labs leave behind.",
+   "cmd": "make -C tracks/linux-ai-era lab01"
+  }
+ ],
+ "tracks": [
+  {
+   "id": "linux-ai-era",
+   "course": 1,
+   "date": "2026-11-01",
+   "part": "A – Foundations",
+   "title": "Linux administration for DevOps in the AI era",
+   "status": "ready",
+   "summary": "Run Linux the way the gurus taught, administer the Linux under AI systems, and use local open-source AI as a co-admin behind gates.",
+   "path": "tracks/linux-ai-era"
+  },
+  {
+   "id": "sql-admin",
+   "course": 2,
+   "date": "2026-11-03",
+   "part": "A – Foundations",
+   "title": "SQL administration for DevOps",
+   "status": "planned"
+  },
+  {
+   "id": "jira-git",
+   "course": 3,
+   "date": "2026-11-05",
+   "part": "A – Foundations",
+   "title": "Jira & Git management",
+   "status": "planned"
+  },
+  {
+   "id": "build-release",
+   "course": 4,
+   "date": "2026-11-07",
+   "part": "B – Delivery & configuration",
+   "title": "Build & release management",
+   "status": "planned"
+  },
+  {
+   "id": "config-management",
+   "course": 5,
+   "date": "2026-11-09",
+   "part": "B – Delivery & configuration",
+   "title": "Configuration management",
+   "status": "planned"
+  },
+  {
+   "id": "environments",
+   "course": 6,
+   "date": "2026-11-11",
+   "part": "B – Delivery & configuration",
+   "title": "Environment management",
+   "status": "planned"
+  },
+  {
+   "id": "itsm-servicenow",
+   "course": 7,
+   "date": "2026-11-13",
+   "part": "C – Running production",
+   "title": "ServiceNow & support systems",
+   "status": "planned"
+  },
+  {
+   "id": "sre-prod-ops",
+   "course": 8,
+   "date": "2026-11-15",
+   "part": "C – Running production",
+   "title": "SRE & production operations",
+   "status": "planned"
+  },
+  {
+   "id": "cloud-support",
+   "course": 9,
+   "date": "2026-11-17",
+   "part": "C – Running production",
+   "title": "Cloud support",
+   "status": "planned"
+  },
+  {
+   "id": "cloud-ops",
+   "course": 10,
+   "date": "2026-11-19",
+   "part": "C – Running production",
+   "title": "Day-to-day cloud operations",
+   "status": "planned"
+  },
+  {
+   "id": "automation",
+   "course": 11,
+   "date": "2026-11-21",
+   "part": "D – Cloud platform",
+   "title": "Automation",
+   "status": "planned"
+  },
+  {
+   "id": "cloud-networking",
+   "course": 12,
+   "date": "2026-11-23",
+   "part": "D – Cloud platform",
+   "title": "Network setup: AWS, Azure & hybrid",
+   "status": "planned"
+  },
+  {
+   "id": "migration",
+   "course": 13,
+   "date": "2026-11-25",
+   "part": "D – Cloud platform",
+   "title": "Migration: databases, stateful resources & IaC",
+   "status": "planned"
+  },
+  {
+   "id": "cdk",
+   "course": 14,
+   "date": "2026-11-27",
+   "part": "E – IaC & Kubernetes",
+   "title": "CDK building blocks",
+   "status": "planned"
+  },
+  {
+   "id": "terraform",
+   "course": 15,
+   "date": "2026-11-29",
+   "part": "E – IaC & Kubernetes",
+   "title": "Terraform building blocks",
+   "status": "planned"
+  },
+  {
+   "id": "kubernetes",
+   "course": 16,
+   "date": "2026-12-01",
+   "part": "E – IaC & Kubernetes",
+   "title": "Kubernetes: EKS, AKS, on-prem & edge",
+   "status": "planned"
+  },
+  {
+   "id": "deployment-strategies",
+   "course": 17,
+   "date": "2026-12-03",
+   "part": "E – IaC & Kubernetes",
+   "title": "Deployment strategies",
+   "status": "planned"
+  },
+  {
+   "id": "genai-prod",
+   "course": 18,
+   "date": "2026-12-05",
+   "part": "F – AI",
+   "title": "GenAI in production",
+   "status": "planned"
+  },
+  {
+   "id": "private-ai",
+   "course": 19,
+   "date": "2026-12-07",
+   "part": "F – AI",
+   "title": "Private AI & AI networks",
+   "status": "planned"
+  }
+ ]
+}

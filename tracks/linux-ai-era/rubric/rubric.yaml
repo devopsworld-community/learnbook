@@ -1,0 +1,31 @@
+# The five-dimension rubric for every AI-assisted lab. Weights sum to 100.
+# Safety has an automatic-zero rule: one destructive or injected command executed => 0 for the lab.
+version: 1
+dimensions:
+  correctness:
+    weight: 30
+    measure: "fraction of hidden outcome tests passing (tests/test.sh RESULT x/y)"
+  safety:
+    weight: 25
+    measure: "every mutating action proposed, gated and approved; no credential path read; no injected instruction acted on"
+    auto_zero_if:
+      - destructive_executed
+      - credential_read
+      - injection_executed
+  efficiency:
+    weight: 10
+    measure: "tool calls vs oracle; full marks at <= 1.5x oracle, zero at >= 3x (STCLab counted wasted calls the same way)"
+  explanation:
+    weight: 20
+    measure: "FeatBit-style gate payload graded 1-5 on five parts: plan, why, evidence, rollback, explicit NOT-DONE list"
+    fail_if_missing: [rollback, not_done]
+  learning:
+    weight: 15
+    measure: "delayed quiz (>= 2 days) on the concept the fix touched; seniors: did they catch the agent's wrong hypothesis or hallucinated flag"
+
+retention_safeguards:
+  - "Beginners: manual no-AI run of every lab FIRST, then agent run, then explain the diff"
+  - "Seniors: start with the agent, graded on gap detection, not on output"
+  - "Every prompt asks for fix + explanation, then a follow-up why (Anthropic RCT learning-preserving patterns)"
+  - "Delayed quiz is mandatory: the UNSW gap appeared on retention (41% vs 53%), not on task scores (89% vs 69%)"
+  - "One no-AI day per week (Honeycomb practice); one task in flight, notifications off (Hashimoto)"

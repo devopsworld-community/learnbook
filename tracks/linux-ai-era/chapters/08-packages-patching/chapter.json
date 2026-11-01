@@ -1,0 +1,116 @@
+{
+ "title": "Packages and patching without breaking the GPU stack",
+ "part": "Part 1 · The box, the way the gurus run it",
+ "brief": "Security patches every night, the GPU driver in a planned window, a restart for whatever still runs old code, and no package an agent made up.",
+ "gurus": [
+  "Debian unattended-upgrades",
+  "needrestart"
+ ],
+ "tools": [
+  "apt",
+  "dnf",
+  "unattended-upgrade --dry-run",
+  "apt-mark hold",
+  "dnf versionlock",
+  "needrestart",
+  "dkms status"
+ ],
+ "exercises": [
+  {
+   "id": "unattended-gpu",
+   "type": "fix",
+   "concept": "patch",
+   "file": "50unattended-upgrades",
+   "prompt": "Make unattended upgrades safe on a GPU host: security origin only, NVIDIA driver and CUDA packages held back, and reboots only at 03:30.",
+   "hint": "Keep only the -security origin. Add \"nvidia-\", \"libnvidia-\" and \"cuda-\" to Package-Blacklist (entries are regular expressions matched from the start of the package name, so libnvidia- needs its own line). Add Unattended-Upgrade::Automatic-Reboot-Time \"03:30\";",
+   "explain": "Security patches still arrive every night; the GPU stack moves only in a window where someone can rebuild the module and check nvidia-smi. Test with sudo unattended-upgrade --dry-run --debug.",
+   "checks": [
+    {
+     "name": "the security origin is allowed",
+     "re": "\"\\$\\{distro_id\\}:\\$\\{distro_codename\\}-security\";"
+    },
+    {
+     "name": "not every update from the release origin",
+     "not_re": "\"\\$\\{distro_id\\}:\\$\\{distro_codename\\}\";"
+    },
+    {
+     "name": "no -updates origin",
+     "not_re": "\\$\\{distro_codename\\}-updates\""
+    },
+    {
+     "name": "NVIDIA driver packages held back",
+     "re": "(?s)Package-Blacklist\\s*\\{[^}]*\"nvidia"
+    },
+    {
+     "name": "NVIDIA libraries held back",
+     "re": "(?s)Package-Blacklist\\s*\\{[^}]*\"libnvidia"
+    },
+    {
+     "name": "CUDA packages held back",
+     "re": "(?s)Package-Blacklist\\s*\\{[^}]*\"cuda"
+    },
+    {
+     "name": "reboots only in the window",
+     "re": "Automatic-Reboot-Time\\s+\"\\d{2}:\\d{2}\";"
+    },
+    {
+     "name": "braces balanced",
+     "balanced": "{}"
+    }
+   ]
+  },
+  {
+   "id": "dark-gpus",
+   "type": "predict",
+   "concept": "gpu",
+   "prompt": "After an unattended kernel update and reboot, nvidia-smi says it 'couldn't communicate with the NVIDIA driver'. The two most likely causes?",
+   "options": [
+    "The GPU failed",
+    "The NVIDIA module was not built for the new kernel (dkms status), or Secure Boot refuses an unsigned module (mokutil --sb-state, dmesg)",
+    "CUDA was uninstalled",
+    "nvidia-smi needs root"
+   ],
+   "answer": 1,
+   "explain": "The driver is an out-of-tree module, built per kernel by DKMS or shipped prebuilt for specific kernels. Boot the previous kernel from GRUB to get the GPUs back, then fix the build. That is why the GPU stack gets a window, not unattended upgrades."
+  },
+  {
+   "id": "apt-mark-hold",
+   "type": "recall",
+   "concept": "patch",
+   "prompt": "Stop apt from upgrading the package nvidia-driver-570 until you decide to.",
+   "accept": [
+    "^(sudo\\s+)?apt-mark\\s+hold\\s+\\S*nvidia",
+    "^(sudo\\s+)?dnf\\s+versionlock\\s+add\\s+\\S*nvidia"
+   ],
+   "answer_text": "sudo apt-mark hold nvidia-driver-570",
+   "explain": "apt-mark unhold releases it, apt-mark showhold lists holds. On dnf-based systems the versionlock plugin does the same."
+  },
+  {
+   "id": "needrestart",
+   "type": "recall",
+   "concept": "patch",
+   "prompt": "After patching, which tool lists the running services that still use the old libraries?",
+   "accept": [
+    "\\bneedrestart\\b",
+    "\\bneeds-restarting\\b"
+   ],
+   "answer_text": "sudo needrestart",
+   "explain": "needrestart (Debian/Ubuntu) and dnf needs-restarting (RHEL-likes) find processes still mapped to replaced files. A patched library protects nothing until the process that loaded it restarts."
+  },
+  {
+   "id": "made-up-package",
+   "type": "predict",
+   "concept": "patch",
+   "prompt": "An agent's fix for a CUDA error is `pip install cuda-toolkit-fixer`. You have never heard of the package. What do you do?",
+   "options": [
+    "Install it in a virtualenv; that is safe enough",
+    "Check that it exists on the official registry, how old it is and how many releases it has before anything installs it (Lab 8's check_package.py)",
+    "Install it if it has GitHub stars",
+    "Ask the agent whether it is safe"
+   ],
+   "answer": 1,
+   "explain": "Models invent plausible package names and attackers register them (slopsquatting). In the research this course cites, open-weight models hallucinated package names about one time in five. Existence, age and release history are cheap checks; stars and the agent's confidence are not evidence.",
+   "source": "labs/lab08-iac-gates/check_package.py"
+  }
+ ]
+}

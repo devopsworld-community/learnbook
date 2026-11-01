@@ -1,0 +1,172 @@
+{
+ "title": "systemd, cgroup v2 and resource control",
+ "part": "Part 1 · The box, the way the gurus run it",
+ "brief": "Services are units, units live in cgroups, and cgroups decide who starves first. Change vendor units with drop-ins, never in place.",
+ "gurus": [
+  "Lennart Poettering, systemd",
+  "systemd.exec(5) and systemd.resource-control(5)"
+ ],
+ "tools": [
+  "systemctl",
+  "journalctl",
+  "systemd-analyze security",
+  "systemd-analyze verify",
+  "systemd-cgtop",
+  "systemd-run"
+ ],
+ "exercises": [
+  {
+   "id": "cgroup2fs",
+   "type": "predict",
+   "concept": "cgroup",
+   "verify": "cgroup",
+   "prompt": "Every lab here assumes cgroup v2. What does `stat -fc %T /sys/fs/cgroup` print on a correct host? Predict, then run it on this machine.",
+   "options": [
+    "cgroupfs",
+    "cgroup2fs",
+    "tmpfs",
+    "sysfs"
+   ],
+   "answer": 1,
+   "explain": "cgroup2fs. Current systemd only mounts v2, current Kubernetes refuses to start kubelet on v1, and Amazon Linux 2 reached end of life on 30 June 2026. tmpfs means the old v1 or hybrid layout; fix that before any lab.",
+   "source": "setup/00-prereqs.sh"
+  },
+  {
+   "id": "drop-in",
+   "type": "predict",
+   "concept": "systemd",
+   "prompt": "You need to change MemoryMax for a service that came from a package. Where does the change go?",
+   "options": [
+    "Edit /usr/lib/systemd/system/<unit>.service directly",
+    "A drop-in, /etc/systemd/system/<unit>.service.d/override.conf (systemctl edit), then daemon-reload and restart",
+    "/etc/default/<unit>",
+    "A cron job that sets it after boot"
+   ],
+   "answer": 1,
+   "explain": "Vendor units are replaced on upgrade; drop-ins in /etc override them key by key and survive. systemctl cat shows the merged unit, which is what systemd actually runs."
+  },
+  {
+   "id": "oom-override",
+   "type": "fix",
+   "concept": "cgroup",
+   "file": "metrics-collector-override.conf",
+   "prompt": "metrics-collector is OOM-killed on every start because its limit is below its working set. Someone removed the limits instead. Put back a sane ceiling: at least 256M, with MemoryHigh below MemoryMax.",
+   "hint": "Under [Service], set MemoryHigh to something like 400M and MemoryMax to 512M. infinity is not a fix; it lets one leaking process take the whole box.",
+   "explain": "Resource limits are a feature; the bug was the number. MemoryHigh throttles and reclaims before MemoryMax kills. Lab 5's VM 1 test checks that the fix lives in a .d/ drop-in and that MemoryMax is still set.",
+   "source": "labs/lab05-broken-vms/solutions/fix-oom.yml",
+   "checks": [
+    {
+     "name": "it is a [Service] drop-in",
+     "re": "^\\[Service\\]\\s*$"
+    },
+    {
+     "name": "limits are not removed (no infinity, no empty value)",
+     "not_re": "^Memory(Max|High)=(infinity)?\\s*$"
+    },
+    {
+     "name": "MemoryMax leaves room for the 180 MB working set (256M or more)",
+     "size_min": {
+      "key": "MemoryMax",
+      "min": "256M"
+     }
+    },
+    {
+     "name": "MemoryHigh throttles before MemoryMax kills",
+     "size_order": [
+      "MemoryHigh",
+      "MemoryMax"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "model-api-unit",
+   "type": "fix",
+   "concept": "systemd",
+   "file": "model-api.service",
+   "prompt": "Make this llama.cpp server unit safe on a shared host: localhost only, not root, restart on failure, start after the network is online, a memory ceiling, and basic sandboxing.",
+   "hint": "--host 127.0.0.1; DynamicUser=yes (SupplementaryGroups=video render for GPU device nodes); Restart=on-failure; Wants= and After=network-online.target; MemoryHigh below MemoryMax; NoNewPrivileges=yes, ProtectSystem=strict, PrivateTmp=yes. On a real host run systemd-analyze security model-api.service.",
+   "explain": "A model server is a network service that runs whatever the model decides to call. Localhost only, no root, restart on failure, a ceiling that throttles before it kills, and a filesystem it cannot write. systemd-analyze security scores what is left exposed.",
+   "checks": [
+    {
+     "name": "does not run as root",
+     "not_re": "^User=root\\s*$"
+    },
+    {
+     "name": "runs as a dynamic or dedicated user",
+     "re": "^(DynamicUser=yes|User=(?!root\\b)\\S+)\\s*$"
+    },
+    {
+     "name": "listens on localhost only",
+     "re": "--host\\s+127\\.0\\.0\\.1\\b"
+    },
+    {
+     "name": "nothing binds 0.0.0.0",
+     "not_re": "0\\.0\\.0\\.0"
+    },
+    {
+     "name": "restarts when it fails",
+     "re": "^Restart=(on-failure|on-abnormal|always)\\s*$"
+    },
+    {
+     "name": "waits for the network to be online (Wants=)",
+     "re": "^Wants=.*network-online\\.target"
+    },
+    {
+     "name": "waits for the network to be online (After=)",
+     "re": "^After=.*network-online\\.target"
+    },
+    {
+     "name": "cannot gain privileges",
+     "re": "^NoNewPrivileges=yes\\s*$"
+    },
+    {
+     "name": "system directories are read-only",
+     "re": "^ProtectSystem=(strict|full)\\s*$"
+    },
+    {
+     "name": "private /tmp",
+     "re": "^PrivateTmp=yes\\s*$"
+    },
+    {
+     "name": "MemoryHigh below MemoryMax",
+     "size_order": [
+      "MemoryHigh",
+      "MemoryMax"
+     ]
+    },
+    {
+     "name": "systemd-analyze verify (advisory: the binary is not on this machine)",
+     "tool": [
+      "systemd-analyze",
+      "verify",
+      "{file}"
+     ],
+     "advisory": true
+    }
+   ]
+  },
+  {
+   "id": "analyze-security",
+   "type": "recall",
+   "concept": "systemd",
+   "prompt": "Which command scores how exposed a unit is (sandboxing and privileges), lower being better?",
+   "accept": [
+    "^(sudo\\s+)?systemd-analyze\\s+security\\b"
+   ],
+   "answer_text": "systemd-analyze security model-api.service",
+   "explain": "It lists every sandboxing option the unit does or does not use, with a weighted exposure score."
+  },
+  {
+   "id": "journal-this-boot",
+   "type": "recall",
+   "concept": "systemd",
+   "prompt": "Show only this boot's logs for metrics-collector.",
+   "accept": [
+    "^(sudo\\s+)?journalctl\\b(?=.*\\s(-b|--boot)\\b)(?=.*(-u\\s*|--unit[= ])metrics-collector)"
+   ],
+   "answer_text": "journalctl -b -u metrics-collector",
+   "explain": "-b limits to the current boot, -u to one unit. Add -f to follow, -p err to filter by priority."
+  }
+ ]
+}

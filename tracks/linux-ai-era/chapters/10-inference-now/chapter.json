@@ -1,0 +1,159 @@
+{
+ "title": "Inference servers, now: Ollama, vLLM and llama.cpp as hardened services",
+ "part": "Part 2 · Linux under AI systems, then and now",
+ "brief": "A model server is a memory-hungry network service that runs what it is asked. Localhost, a cgroup ceiling, a sandbox, the GPU and nothing else.",
+ "gurus": [
+  "Ollama",
+  "vLLM",
+  "llama.cpp (Georgi Gerganov)",
+  "NVIDIA Container Toolkit"
+ ],
+ "tools": [
+  "systemctl edit ollama",
+  "systemd-analyze security",
+  "nvtop",
+  "nvidia-smi -q -d PERFORMANCE",
+  "nvidia-ctk",
+  "systemd-cgtop"
+ ],
+ "exercises": [
+  {
+   "id": "ollama-host",
+   "type": "predict",
+   "concept": "inference",
+   "verify": "ollama",
+   "prompt": "The course's Ollama unit override sets OLLAMA_HOST to which address, and why?",
+   "options": [
+    "0.0.0.0:11434 so containers can reach it",
+    "127.0.0.1:11434, because about 175,000 Ollama instances were found publicly exposed in 2026",
+    "[::]:11434 for IPv6 readiness",
+    "A unix socket only"
+   ],
+   "answer": 1,
+   "explain": "Localhost only. Containers reach it through host.docker.internal via the egress proxy. Most exposed instances are someone's homelab with a model that will run whatever it is asked.",
+   "source": "setup/01-ollama-systemd.sh"
+  },
+  {
+   "id": "memoryhigh-why",
+   "type": "predict",
+   "concept": "cgroup",
+   "prompt": "The Ollama unit has MemoryMax=48G and MemoryHigh=44G. The same host runs kind and the agent. What is the point?",
+   "options": [
+    "Faster inference",
+    "The model is what gets throttled first, not kubelet",
+    "The NVIDIA driver requires it",
+    "It stops the model from loading"
+   ],
+   "answer": 1,
+   "explain": "cgroup v2 decides who starves. MemoryHigh throttles the model before MemoryMax kills it, and kubelet keeps running. systemd-cgtop and /proc/pressure show it happening.",
+   "source": "setup/01-ollama-systemd.sh"
+  },
+  {
+   "id": "ollama-dropin",
+   "type": "fix",
+   "concept": "inference",
+   "file": "ollama-override.conf",
+   "prompt": "Fix this Ollama drop-in: localhost only, MemoryHigh below MemoryMax, no privilege gain, a read-only system with the model store writable, and only the NVIDIA device nodes reachable.",
+   "hint": "OLLAMA_HOST=127.0.0.1:11434; swap the memory values so MemoryHigh (44G) is below MemoryMax (48G); add NoNewPrivileges=yes, ProtectSystem=strict, ReadWritePaths=/var/lib/ollama, PrivateTmp=yes, DevicePolicy=closed and DeviceAllow=/dev/nvidiactl rw, /dev/nvidia-uvm rw, /dev/nvidia0 rw.",
+   "explain": "This is a trimmed version of what setup/01-ollama-systemd.sh writes. With DevicePolicy=closed the service sees only the devices you list, so the GPU works and nothing else under /dev does.",
+   "source": "setup/01-ollama-systemd.sh",
+   "checks": [
+    {
+     "name": "Ollama listens on localhost only",
+     "re": "^Environment=\"?OLLAMA_HOST=127\\.0\\.0\\.1:11434\"?\\s*$"
+    },
+    {
+     "name": "nothing binds 0.0.0.0",
+     "not_re": "0\\.0\\.0\\.0"
+    },
+    {
+     "name": "MemoryHigh below MemoryMax",
+     "size_order": [
+      "MemoryHigh",
+      "MemoryMax"
+     ]
+    },
+    {
+     "name": "cannot gain privileges",
+     "re": "^NoNewPrivileges=yes\\s*$"
+    },
+    {
+     "name": "the system is read-only",
+     "re": "^ProtectSystem=strict\\s*$"
+    },
+    {
+     "name": "the model store stays writable",
+     "re": "^ReadWritePaths=.*/var/lib/ollama"
+    },
+    {
+     "name": "devices closed by default",
+     "re": "^DevicePolicy=closed\\s*$"
+    },
+    {
+     "name": "NVIDIA device nodes explicitly allowed",
+     "re": "^DeviceAllow=/dev/nvidia"
+    },
+    {
+     "name": "not running as root",
+     "not_re": "^User=root\\s*$"
+    }
+   ]
+  },
+  {
+   "id": "gpus-all",
+   "type": "predict",
+   "concept": "inference",
+   "prompt": "`docker run --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` fails with 'could not select device driver \"\" with capabilities: [[gpu]]'. Why?",
+   "options": [
+    "The image tag is wrong",
+    "The NVIDIA Container Toolkit is not installed or not configured for Docker (nvidia-ctk runtime configure --runtime=docker, then restart Docker)",
+    "The GPU is busy",
+    "Docker needs --privileged"
+   ],
+   "answer": 1,
+   "explain": "Docker cannot reach GPUs by itself; the toolkit injects the driver libraries and device nodes into the container. --privileged exposes every device on the host and is never the fix."
+  },
+  {
+   "id": "vllm-ninety",
+   "type": "predict",
+   "concept": "inference",
+   "prompt": "vLLM starts and immediately takes about 90% of the GPU's memory before any request. What is happening?",
+   "options": [
+    "A memory leak",
+    "By design: --gpu-memory-utilization defaults to 0.9 and vLLM pre-allocates its KV cache; lower it when the GPU is shared",
+    "The model loaded twice",
+    "nvidia-smi is misreporting"
+   ],
+   "answer": 1,
+   "explain": "vLLM reserves memory up front so its paged KV cache never has to ask for more mid-request. On a shared GPU, set --gpu-memory-utilization to the share this server should own."
+  },
+  {
+   "id": "throttled",
+   "type": "predict",
+   "concept": "inference",
+   "prompt": "Tokens per second halved overnight; nvidia-smi still shows 100% GPU utilization. What do you check first?",
+   "options": [
+    "The model's temperature setting",
+    "Why the clocks are throttled: nvidia-smi -q -d PERFORMANCE lists the reasons (power cap, thermal, slowdown)",
+    "Reinstall the driver",
+    "Add replicas"
+   ],
+   "answer": 1,
+   "explain": "Utilization only says a kernel was running, not how fast. A hot or power-capped GPU shows the same 100% at lower clocks; temperature, power draw and the throttle reasons tell you which."
+  },
+  {
+   "id": "nvtop",
+   "type": "recall",
+   "concept": "inference",
+   "prompt": "Watch GPU utilization and memory per process, live, in the terminal.",
+   "accept": [
+    "^(sudo\\s+)?nvtop\\b",
+    "nvidia-smi\\s+(pmon|dmon)",
+    "watch\\s+.*nvidia-smi",
+    "nvidia-smi\\s+.*(-l\\b|--loop)"
+   ],
+   "answer_text": "nvtop",
+   "explain": "nvtop is the htop of GPUs (NVIDIA, AMD and Intel). nvidia-smi pmon and dmon stream per-process and per-device samples without installing anything."
+  }
+ ]
+}

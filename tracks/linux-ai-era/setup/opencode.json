@@ -1,0 +1,48 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": { "baseURL": "http://127.0.0.1:11434/v1" },
+      "models": {
+        "devstral:24b": { "name": "Devstral 24B (Apache-2.0)", "limit": { "context": 32768, "output": 8192 } },
+        "gpt-oss:20b":  { "name": "gpt-oss 20B (Apache-2.0)",  "limit": { "context": 32768, "output": 8192 } }
+      }
+    }
+  },
+  "model": "ollama/devstral:24b",
+
+  "_comment_agents": "plan = read-only investigation, asks before any bash. build = can edit. We default to plan and require explicit switch to build on camera.",
+  "agent": {
+    "plan": {
+      "model": "ollama/devstral:24b",
+      "permission": { "edit": "deny", "bash": "ask", "webfetch": "deny" }
+    },
+    "build": {
+      "model": "ollama/devstral:24b",
+      "permission": {
+        "edit": "ask",
+        "bash": {
+          "*": "ask",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "ls*": "allow",
+          "cat *": "allow",
+          "systemctl status*": "allow",
+          "journalctl*": "allow",
+          "nginx -t": "allow",
+          "rm -rf*": "deny",
+          "kubectl delete*": "deny",
+          "terraform apply*": "deny",
+          "sudo *": "ask"
+        },
+        "webfetch": "deny"
+      }
+    }
+  },
+
+  "instructions": ["AGENTS.md"],
+  "autoupdate": false,
+  "share": "disabled"
+}

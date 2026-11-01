@@ -1,0 +1,42 @@
+# Read-only identities for the investigators. No Secrets. No writes. Projected 1h tokens.
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: holmes, namespace: ai-ops }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: k8sgpt, namespace: ai-ops }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: mcp-readonly, namespace: ai-ops }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: ai-ops-readonly }
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/status", "events", "services", "endpoints", "nodes", "namespaces", "configmaps", "persistentvolumeclaims", "replicationcontrollers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+  # Deliberately absent: secrets, any create/update/patch/delete, pods/exec, pods/portforward
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: { name: ai-ops-readonly }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: ai-ops-readonly }
+subjects:
+  - { kind: ServiceAccount, name: holmes, namespace: ai-ops }
+  - { kind: ServiceAccount, name: k8sgpt, namespace: ai-ops }
+  - { kind: ServiceAccount, name: mcp-readonly, namespace: ai-ops }

@@ -1,0 +1,14 @@
+# I AM NOT DONE
+# /etc/systemd/system/model-api.service
+# A llama.cpp server for the team's local model. Make it safe to leave running on a shared host.
+[Unit]
+Description=Model API (llama.cpp server)
+After=network.target
+
+[Service]
+ExecStart=/opt/llama.cpp/llama-server --host 0.0.0.0 --port 8080 -m /srv/models/model.gguf
+User=root
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

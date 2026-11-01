@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learnbook</title>
+<style>
+:root{
+  --ground:#1B2130; --panel:#222A3B; --sunk:#141925; --line:#33405A; --paper:#E9E4D8; --steel:#8FA3B8;
+  --amber:#F2B544; --teal:#4FB39A; --brick:#C8553D; --hover:#2A3449;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","IBM Plex Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI","IBM Plex Sans",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --ground:#F6F3EC; --panel:#FFFFFF; --sunk:#EFEBE2; --line:#D8D1C2; --paper:#1F2633; --steel:#5C6B7D;
+  --amber:#A86A00; --teal:#1F7A63; --brick:#B03A22; --hover:#F1ECE1;}}
+:root[data-theme="light"]{--ground:#F6F3EC; --panel:#FFFFFF; --sunk:#EFEBE2; --line:#D8D1C2; --paper:#1F2633; --steel:#5C6B7D;
+  --amber:#A86A00; --teal:#1F7A63; --brick:#B03A22; --hover:#F1ECE1;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ground);color:var(--paper);font:16px/1.55 var(--sans)}
+a{color:var(--amber)}
+button,select{font:inherit;color:inherit;background:none;border:1px solid var(--line);border-radius:4px;padding:.45rem .85rem;cursor:pointer}
+select{background:var(--panel)}
+button:hover{border-color:var(--steel)}
+button:focus-visible,[tabindex]:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button.primary{background:var(--paper);color:var(--ground);border-color:var(--paper);font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+code,pre,.mono,kbd{font-family:var(--mono);font-size:.9em}
+:not(pre)>code{background:var(--sunk);padding:.08rem .3rem;border-radius:3px}
+pre{background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:.8rem 1rem;overflow:auto;white-space:pre-wrap;word-break:break-word;line-height:1.45;margin:.6rem 0}
+h1,h2,h3,h4{font-weight:600;line-height:1.25;margin:0}
+h1{font-size:1.3rem} h2{font-size:1.55rem;letter-spacing:-.01em} h3{font-size:1rem;color:var(--steel);font-weight:500}
+p{margin:.5rem 0 0;max-width:72ch}
+.app{display:grid;grid-template-columns:290px minmax(0,1fr);min-height:100vh}
+@media (max-width:880px){.app{grid-template-columns:minmax(0,1fr)}.rail{position:static!important;height:auto!important;border-right:0!important;border-bottom:1px solid var(--line)}}
+.rail{border-right:1px solid var(--line);padding:1.1rem 1rem;position:sticky;top:0;height:100vh;overflow:auto}
+.rail .sub{color:var(--steel);font-size:.88rem;margin:.15rem 0 .8rem}
+.rail select{width:100%;margin:.3rem 0 .6rem}
+.meter{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden;margin:.45rem 0 1rem}
+.meter i{display:block;height:100%;background:var(--amber);width:0;transition:width .4s ease}
+.part{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--steel);margin:.9rem .3rem .25rem}
+.chap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.15rem .5rem;width:100%;text-align:left;padding:.45rem .5rem;border-radius:4px;border:1px solid transparent;color:var(--paper)}
+.chap:hover{background:var(--hover)} .chap.active{border-color:var(--line);background:var(--panel)} .chap.locked{opacity:.45}
+.chap .name{font-weight:500;font-size:.93rem;min-width:0} .chap .state{color:var(--steel);font-size:.8rem;font-family:var(--mono)}
+.chap .bar{grid-column:1/-1;height:3px;background:var(--sunk);border-radius:2px} .chap .bar i{display:block;height:100%;background:var(--teal)}
+.box{margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--line);font-size:.88rem;color:var(--steel)}
+.box b{color:var(--paper)} .box button{margin-top:.45rem;display:block}
+main{padding:1.4rem clamp(1rem,4vw,3rem) 4rem;max-width:980px;min-width:0}
+.brief{color:var(--steel);margin:.35rem 0 .8rem}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.4rem 0}
+.chip{display:inline-block;padding:.15rem .55rem;border:1px solid var(--line);border-radius:999px;font-size:.8rem;color:var(--steel)}
+.tabs{display:flex;gap:.4rem;margin:1rem 0 .5rem;border-bottom:1px solid var(--line)}
+.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;padding:.5rem .8rem;color:var(--steel)}
+.tabs button.on{border-bottom-color:var(--amber);color:var(--paper)}
+.lesson{max-width:76ch} .lesson h1{font-size:1.4rem;margin:1rem 0 .3rem} .lesson h2{font-size:1.2rem;margin:1.3rem 0 .3rem} .lesson h3{font-size:1.02rem;color:var(--paper);margin:1rem 0 .2rem}
+.lesson ul,.lesson ol{padding-left:1.3rem;margin:.4rem 0} .lesson li{margin:.15rem 0}
+.lesson blockquote{margin:.6rem 0;padding:.3rem .9rem;border-left:3px solid var(--amber);color:var(--steel)}
+.lesson table{border-collapse:collapse;margin:.6rem 0;font-size:.92rem;display:block;overflow-x:auto} .lesson td,.lesson th{border:1px solid var(--line);padding:.3rem .55rem;text-align:left;vertical-align:top}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1.3rem 1.4rem;margin-top:.9rem;min-width:0}
+.card .prompt{font-size:1.07rem;font-weight:500;margin-bottom:.8rem}
+.meta{color:var(--steel);font-size:.82rem;font-family:var(--mono);margin-bottom:.5rem}
+.options{display:grid;gap:.45rem;margin:.6rem 0}
+.opt{text-align:left;padding:.65rem .85rem;border-radius:4px;background:var(--ground)}
+.opt.right{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 14%,transparent)}
+.opt.wrong{border-color:var(--brick);background:color-mix(in srgb,var(--brick) 14%,transparent)}
+.verdict{margin-top:.9rem;padding:.8rem 1rem;border-left:3px solid var(--steel);background:var(--ground);border-radius:0 4px 4px 0}
+.verdict.ok{border-left-color:var(--teal)} .verdict.bad{border-left-color:var(--brick)}
+.src{display:block;margin-top:.5rem;color:var(--steel);font-size:.84rem}
+.actions{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
+.nav button.cur{border-color:var(--amber);color:var(--amber)} .nav button.ok{color:var(--teal)}
+.log .ln{display:grid;grid-template-columns:2.4rem minmax(0,1fr);gap:.5rem;padding:.2rem .4rem;border-radius:3px;cursor:pointer;font-family:var(--mono);font-size:.84rem;line-height:1.45;word-break:break-word}
+.log .ln span:first-child{color:var(--steel);text-align:right}
+.log .ln:hover{background:var(--hover)} .log .ln.hit{outline:1px solid var(--teal);background:color-mix(in srgb,var(--teal) 16%,transparent)}
+.log .ln.miss{outline:1px solid var(--brick);background:color-mix(in srgb,var(--brick) 16%,transparent)} .log .ln.reveal{outline:1px dashed var(--amber)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.6rem;align-items:center;padding:.35rem 0;border-bottom:1px solid var(--line)}
+.row code{word-break:break-all} .row .res{grid-column:1/-1;font-size:.84rem;color:var(--steel)}
+.seg{display:inline-flex;gap:0} .seg button{border-radius:0} .seg button:first-child{border-radius:4px 0 0 4px} .seg button:last-child{border-radius:0 4px 4px 0}
+.seg button.sel{background:var(--paper);color:var(--ground)}
+textarea,input[type=text]{width:100%;background:var(--sunk);color:var(--paper);border:1px solid var(--line);border-radius:4px;padding:.7rem;font:.88rem/1.45 var(--mono)}
+textarea{min-height:280px;resize:vertical}
+.checks{list-style:none;padding:0;margin:.7rem 0 0;font-family:var(--mono);font-size:.86rem}
+.checks li{padding:.15rem 0} .checks .pass b{color:var(--teal)} .checks .fail b{color:var(--brick)} .checks .skip b{color:var(--steel)}
+.checks small{display:block;color:var(--steel);margin-left:3.2rem;white-space:pre-wrap}
+.notice{color:var(--amber);font-size:.9rem;margin-top:.5rem}
+.muted{color:var(--steel);font-size:.9rem}
+.tick{display:block;padding:.35rem 0;cursor:pointer} .tick input{margin-right:.55rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.8rem;margin-top:1rem}
+.track{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.track.planned{opacity:.6} .track .n{font-family:var(--mono);font-size:.8rem;color:var(--steel)}
+.ways{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.7rem;margin-top:.8rem}
+.ways div{border:1px solid var(--line);border-radius:6px;padding:.75rem .9rem;background:var(--panel)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" id="rail"></aside>
+  <main id="main"><p class="muted">Loading the book…</p></main>
+</div>
+<script>
+"use strict";
+const $ = (s, root=document) => root.querySelector(s);
+function el(tag, attrs={}, ...kids){
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs||{})) {
+    if (v===null || v===undefined || v===false) continue;
+    if (k==='class') n.className=v; else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v===true?'':v);
+  }
+  for (const k of kids.flat()) if (k!==null && k!==undefined && k!==false) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return n;
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = { get(k){ try { return localStorage.getItem('learnbook:'+k); } catch(e){ return null; } }, set(k,v){ try { localStorage.setItem('learnbook:'+k, v); } catch(e){} } };
+
+let BOOK, T, P, V = {mode:'home'}, POLL = null;
+
+async function api(path, opts={}){
+  const r = await fetch(path, opts); const j = await r.json().catch(()=>({error:'bad response'}));
+  if (!r.ok && j.error) throw new Error(j.error); return j;
+}
+const q = (path, params={}) => path + '?' + new URLSearchParams({track: T ? T.id : '', ...params});
+const post = (path, body, params={}) => api(q(path, params), {method:'POST', headers:{'Content-Type':'application/json','X-Learnbook':'1'}, body: JSON.stringify(body)});
+const putText = (path, text, params) => api(q(path, params), {method:'PUT', headers:{'Content-Type':'text/plain; charset=utf-8','X-Learnbook':'1'}, body: text});
+
+/* ---------------- markdown (escaped first; only a safe subset is rendered) ---------------- */
+function inline(s){
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
+  s = s.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\.{0,2}\/|[\w.-]+\/)[^)\s]*)\)/g, (m,t,u)=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`);
+  return s;
+}
+function md(src){
+  const lines = src.replace(/\r/g,'').split('\n'); let html='', i=0;
+  while (i<lines.length){
+    const ln = lines[i];
+    if (/^```/.test(ln)){ let buf=[]; i++; while(i<lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]); i++; html += `<pre><code>${esc(buf.join('\n'))}</code></pre>`; continue; }
+    const h = ln.match(/^(#{1,4})\s+(.*)/); if (h){ html += `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`; i++; continue; }
+    const list = (re, tag) => { const buf=[]; while(i<lines.length){ const l=lines[i]; if (re.test(l)) { buf.push(l.replace(re,'')); i++; } else if (buf.length && /^\s{2,}\S/.test(l)) { buf[buf.length-1] += ' ' + l.trim(); i++; } else break; } html += `<${tag}>`+buf.map(x=>`<li>${inline(x)}</li>`).join('')+`</${tag}>`; };
+    if (/^\s*[-*]\s+/.test(ln)){ list(/^\s*[-*]\s+/, 'ul'); continue; }
+    if (/^\s*\d+\.\s+/.test(ln)){ list(/^\s*\d+\.\s+/, 'ol'); continue; }
+    if (/^>\s?/.test(ln)){ let buf=[]; while(i<lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/,'')); html += `<blockquote>${inline(buf.join(' '))}</blockquote>`; continue; }
+    if (/^\|.*\|\s*$/.test(ln)){ let rows=[]; while(i<lines.length && /^\|.*\|\s*$/.test(lines[i])) rows.push(lines[i++]); rows = rows.filter(r=>!/^\|[\s:|-]+\|\s*$/.test(r));
+      html += '<table>'+rows.map((r,ri)=>'<tr>'+r.trim().slice(1,-1).split('|').map(c=>ri===0?`<th>${inline(c.trim())}</th>`:`<td>${inline(c.trim())}</td>`).join('')+'</tr>').join('')+'</table>'; continue; }
+    if (!ln.trim()){ i++; continue; }
+    let buf=[]; while(i<lines.length && lines[i].trim() && !/^(#{1,4}\s|```|\s*[-*]\s|\s*\d+\.\s|>|\|)/.test(lines[i])) buf.push(lines[i++]);
+    html += `<p>${inline(buf.join(' '))}</p>`;
+  }
+  const d = el('div',{class:'lesson'}); d.innerHTML = html; return d;
+}
+
+/* ---------------- helpers ---------------- */
+const chapters = () => T.chapters;
+const exDone = id => P.done[id];
+function chState(ci){ return P.chapters[ci]; }
+function concept(c){ return (T.concepts||{})[c] || c; }
+function stopPoll(){ if (POLL){ clearInterval(POLL); POLL=null; } }
+async function refresh(){ P = await api(q('/api/progress')); }
+async function reloadTrack(){ T = await api(q('/api/track')); }
+function go(v){ stopPoll(); V = v; if (v.mode==='chapter') { store.set('pos', JSON.stringify(v)); } render(); window.scrollTo(0,0); }
+function verdict(card, ok, text){ const v = el('div',{class:`verdict ${ok?'ok':'bad'}`}, el('div',{}, (ok?'Right. ':'Not this time. ')+(text||''))); card.append(v); return v; }
+function sourceLine(ex){ const s = ex.source || ex.cite; return s ? el('span',{class:'src'}, `Source: ${s}`) : null; }
+function xpNote(r){ return r && r.xp ? ` +${r.xp} xp${r.chapter_cleared?' · chapter cleared':''}` : ''; }
+
+/* ---------------- rail ---------------- */
+function renderRail(){
+  const rail = $('#rail'); rail.innerHTML='';
+  rail.append(el('h1',{}, BOOK.title || 'Learnbook'), el('div',{class:'sub'}, BOOK.tagline || ''));
+  const ready = BOOK.tracks.filter(t=>t.status==='ready');
+  const sel = el('select',{'aria-label':'Track', onchange: async e=>{ await openTrack(e.target.value); }}, ready.map(t=>el('option',{value:t.id, selected: T && t.id===T.id}, `${t.course?t.course+'. ':''}${t.title}`)));
+  rail.append(el('button',{onclick:()=>go({mode:'home'})}, 'All tracks'), sel);
+  if (!T || !P) return;
+  const total = T.chapters.reduce((a,c)=>a+c.exercises.length,0); const done = Object.keys(P.done).length;
+  rail.append(el('div',{class:'mono'}, `${P.xp} xp · ${P.streak||0}-day streak · ${done}/${total}`), el('div',{class:'meter','aria-label':'progress'}, el('i',{style:`width:${total?100*done/total:0}%`})));
+  let part = null;
+  T.chapters.forEach((c,ci)=>{
+    if (c.part && c.part!==part){ part = c.part; rail.append(el('div',{class:'part'}, part)); }
+    const s = chState(ci);
+    rail.append(el('button',{class:`chap ${V.mode==='chapter'&&V.ch===ci?'active':''} ${s.unlocked?'':'locked'}`, onclick:()=>{ if (s.unlocked) go({mode:'chapter', ch:ci, tab:'lesson', ex:firstOpen(ci)}); }, title: s.unlocked?'':'Clear 60% of the chapter before it to unlock'},
+      el('span',{class:'name'}, `${ci+1}. ${c.title}`), el('span',{class:'state'}, s.cleared?'cleared':s.unlocked?`${s.done}/${s.total}`:'locked'), el('span',{class:'bar'}, el('i',{style:`width:${s.total?100*s.done/s.total:0}%`}))));
+  });
+  const box = el('div',{class:'box'});
+  box.append(el('div',{}, el('b',{}, String(P.due.length)), P.due.length===1?' question due for review':' questions due for review'));
+  if (P.due.length) box.append(el('button',{onclick:()=>go({mode:'review'})}, 'Start review'));
+  if (P.quiz==='ready') box.append(el('button',{class:'primary', onclick:()=>go({mode:'quiz'})}, 'Delayed quiz is ready'));
+  else if (P.quiz==='locked') box.append(el('div',{style:'margin-top:.4rem'}, 'Delayed quiz opens two days after your first cleared chapter.'));
+  const ms = Object.entries(P.mastery).sort((a,b)=>(a[1].right/a[1].seen)-(b[1].right/b[1].seen));
+  if (ms.length){ box.append(el('div',{style:'margin-top:.8rem'}, el('b',{}, 'Mastery'), ' (weakest first)')); ms.forEach(([k,m])=>box.append(el('div',{class:'mono', style:'font-size:.78rem'}, `${Math.round(100*m.right/m.seen)}%  ${concept(k)} (${m.seen})`))); }
+  box.append(el('div',{style:'margin-top:.9rem'}, 'Same progress in the terminal: ', el('code',{}, './lb watch')));
+  rail.append(box);
+}
+function firstOpen(ci){ const i = T.chapters[ci].exercises.findIndex(e=>!exDone(e.uid)); return i<0?0:i; }
+
+/* ---------------- home: the whole book ---------------- */
+function renderHome(m){
+  m.append(el('h3',{}, BOOK.series || ''), el('h2',{}, BOOK.title), el('p',{class:'brief'}, BOOK.description || ''));
+  const ways = el('div',{class:'ways'});
+  (BOOK.ways||[]).forEach(w=> ways.append(el('div',{}, el('b',{}, w.name), el('p',{class:'muted'}, w.how), w.cmd?el('pre',{}, w.cmd):null)));
+  m.append(el('h3',{style:'margin-top:1.2rem'}, 'Ways to use this book'), ways);
+  m.append(el('h3',{style:'margin-top:1.6rem'}, 'Tracks'));
+  const g = el('div',{class:'grid'});
+  BOOK.tracks.forEach(t=>{
+    const ready = t.status==='ready';
+    g.append(el('div',{class:`track ${ready?'':'planned'}`},
+      el('span',{class:'n'}, `${t.course?'Course '+t.course:''}${t.date?' · '+t.date:''}${t.part?' · '+t.part:''}`),
+      el('b',{}, t.title), t.summary?el('span',{class:'muted'}, t.summary):null,
+      ready ? el('button',{class:'primary', onclick:()=>openTrack(t.id, true)}, T&&T.id===t.id?'Continue':'Open') : el('span',{class:'muted'}, 'Planned')));
+  });
+  m.append(g);
+}
+
+/* ---------------- chapter ---------------- */
+function renderChapter(m){
+  const ci = V.ch, c = T.chapters[ci];
+  m.append(el('h3',{}, `${c.part?c.part+' · ':''}Chapter ${ci+1} of ${T.chapters.length}`), el('h2',{}, c.title), el('p',{class:'brief'}, c.brief||''));
+  const chips = el('div',{class:'chips'});
+  (c.gurus||[]).forEach(g=>chips.append(el('span',{class:'chip', title:'Whose method this chapter follows'}, g)));
+  (c.tools||[]).forEach(t=>chips.append(el('span',{class:'chip mono'}, t)));
+  if (chips.children.length) m.append(chips);
+  const s = chState(ci);
+  m.append(el('div',{class:'tabs', role:'tablist'},
+    el('button',{class:V.tab==='lesson'?'on':'', role:'tab', onclick:()=>go({...V, tab:'lesson'})}, 'Lesson'),
+    el('button',{class:V.tab==='ex'?'on':'', role:'tab', onclick:()=>go({...V, tab:'ex'})}, `Exercises ${s.done}/${s.total}`)));
+  if (V.tab==='lesson'){
+    m.append(md(c.lesson || '_No lesson text yet._'));
+    m.append(el('div',{class:'actions'}, el('button',{class:'primary', onclick:()=>go({...V, tab:'ex', ex:firstOpen(ci)})}, s.done? 'Back to the exercises':'Start the exercises')));
+    return;
+  }
+  const nav = el('div',{class:'actions nav'});
+  c.exercises.forEach((e,i)=> nav.append(el('button',{class:`${i===V.ex?'cur':''} ${exDone(e.uid)?'ok':''}`, onclick:()=>go({...V, ex:i}), title:e.type}, exDone(e.uid)?`✓ ${i+1}`:`${i+1}`)));
+  m.append(nav);
+  const ex = c.exercises[V.ex]; const card = el('div',{class:'card'});
+  card.append(el('div',{class:'meta'}, `${ex.type} · ${concept(ex.concept)}`));
+  m.append(card);
+  (RENDER[ex.type] || ((card)=>card.append('Unknown exercise type')))(card, ex);
+}
+function nextBtn(){
+  const c = T.chapters[V.ch];
+  if (V.ex+1 < c.exercises.length) return el('button',{class:'primary', onclick:()=>go({...V, ex:V.ex+1})}, 'Next');
+  if (V.ch+1 < T.chapters.length && chState(V.ch+1).unlocked) return el('button',{class:'primary', onclick:()=>go({mode:'chapter', ch:V.ch+1, tab:'lesson', ex:0})}, `Next chapter: ${T.chapters[V.ch+1].title}`);
+  return el('span',{class:'muted'}, chState(V.ch).cleared?'Chapter cleared.':'Finish the open exercises to unlock the next chapter.');
+}
+async function afterAnswer(card, ex, r, text){
+  verdict(card, r.ok, text + xpNote(r)); const s = sourceLine(ex); if (s) card.lastChild.append(s);
+  await refresh(); await reloadTrack(); renderRail(); card.append(el('div',{class:'actions'}, nextBtn()));
+  const st = chState(V.ch), tab = document.querySelector('.tabs button:last-child'); if (tab && st) tab.textContent = `Exercises ${st.done}/${st.total}`;
+  const navb = document.querySelectorAll('.nav button')[V.ex]; if (navb){ navb.classList.add('ok'); navb.textContent = `✓ ${V.ex+1}`; }
+}
+function doneVerdict(card, ex, text){
+  const d = exDone(ex.uid); if (!d) return false;
+  verdict(card, d.ok, (d.ok?'':'(answered wrong earlier; it comes back in review) ') + (text || (ex.reveal&&ex.reveal.explain) || ''));
+  const s = sourceLine(ex); if (s) card.lastChild.append(s); card.append(el('div',{class:'actions'}, nextBtn())); return true;
+}
+
+const RENDER = {
+  predict(card, ex, review){
+    card.append(el('div',{class:'prompt'}, ex.prompt));
+    const opts = el('div',{class:'options'}); let answered = !review && !!exDone(ex.uid);
+    ex.options.forEach((o,i)=> opts.append(el('button',{class:`opt ${answered&&ex.reveal&&ex.reveal.answer===i?'right':''}`, onclick: async()=>{
+      if (answered) return; answered = true;
+      const r = review ? await post('/api/review', {id:ex.uid, response:{choice:i}}) : await post('/api/answer', {id:ex.uid, response:{choice:i}});
+      [...opts.children].forEach((b,j)=>{ if (j===r.answer) b.classList.add('right'); else if (j===i) b.classList.add('wrong'); });
+      if (review) { verdict(card, r.ok, r.explain); card.append(el('div',{class:'actions'}, el('button',{class:'primary', onclick:()=>go({mode:'review'})}, 'Next'))); }
+      else await afterAnswer(card, ex, r, r.explain);
+      if (ex.verify) card.append(verifyBlock(ex.verify));
+    }}, o)));
+    card.append(opts);
+    if (!review && doneVerdict(card, ex) && ex.verify) card.append(verifyBlock(ex.verify));
+  },
+  recall(card, ex, review){
+    card.append(el('div',{class:'prompt'}, ex.prompt));
+    const inp = el('input',{type:'text', placeholder:'type the command', spellcheck:'false', autocomplete:'off', 'aria-label':'your command'});
+    const btn = el('button',{class:'primary', onclick: async()=>{
+      if (!inp.value.trim()) return; btn.disabled = true; inp.disabled = true;
+      const r = await post(review?'/api/review':'/api/answer', {id:ex.uid, response:{text:inp.value}});
+      const a = `One good answer: ${r.reveal ? r.reveal.answer_text : r.answer}. ${r.explain||''}`;
+      if (review) { verdict(card, r.ok, a); card.append(el('div',{class:'actions'}, el('button',{class:'primary', onclick:()=>go({mode:'review'})}, 'Next'))); }
+      else await afterAnswer(card, ex, r, a);
+    }}, 'Check');
+    inp.addEventListener('keydown', e=>{ if (e.key==='Enter') btn.click(); });
+    card.append(el('div',{class:'actions'}, el('span',{class:'mono'}, '$'), el('div',{style:'flex:1;min-width:200px'}, inp), btn));
+    if (!review && exDone(ex.uid)) { btn.disabled = true; inp.disabled = true; doneVerdict(card, ex, `One good answer: ${ex.reveal.answer_text}. ${ex.reveal.explain||''}`); }
+  },
+  spot(card, ex){
+    card.append(el('div',{class:'prompt'}, ex.prompt), el('div',{class:'meta'}, ex.file));
+    const log = el('div',{class:'log'}); let answered = !!exDone(ex.uid);
+    const finish = async line => {
+      if (answered) return; answered = true;
+      const r = await post('/api/answer', {id:ex.uid, response:{line}});
+      [...log.children].forEach((ln,i)=>{ if (r.injected.includes(i)) ln.classList.add(line===i?'hit':'reveal'); else if (i===line) ln.classList.add('miss'); });
+      await afterAnswer(card, ex, r, r.explain);
+    };
+    ex.lines.forEach((t,i)=> log.append(el('div',{class:'ln', tabindex:'0', role:'button', onclick:()=>finish(i), onkeydown:e=>{ if (e.key==='Enter') finish(i); }}, el('span',{}, i+1), el('span',{}, t))));
+    card.append(log, el('div',{class:'actions'}, el('button',{onclick:()=>finish(-1)}, 'This log is clean')));
+    if (answered && ex.reveal) { [...log.children].forEach((ln,i)=>{ if (ex.reveal.injected.includes(i)) ln.classList.add('hit'); }); doneVerdict(card, ex); }
+  },
+  sort(card, ex){
+    card.append(el('div',{class:'prompt'}, ex.prompt));
+    const picks = ex.items.map(()=>-1); const rows = el('div',{});
+    ex.items.forEach((name,i)=>{
+      const seg = el('div',{class:'seg'}, ex.buckets.map((b,bi)=>el('button',{onclick:e=>{ picks[i]=bi; [...seg.children].forEach((x,xi)=>x.classList.toggle('sel', xi===bi)); btn.disabled = picks.includes(-1); }}, b)));
+      rows.append(el('div',{class:'row'}, el('span',{}, name), seg, el('div',{class:'res', id:`sr${i}`})));
+    });
+    const btn = el('button',{class:'primary', disabled:true, onclick: async()=>{ btn.disabled = true;
+      const r = await post('/api/answer', {id:ex.uid, response:{placed:picks}});
+      r.truth.forEach((b,i)=>{ $(`#sr${i}`, rows).textContent = picks[i]===b ? '✓' : `✗ belongs in: ${ex.buckets[b]}`; });
+      await afterAnswer(card, ex, r, `${r.right}/${r.total}. ${r.explain}`);
+    }}, 'Check');
+    card.append(rows, el('div',{class:'actions'}, btn));
+    if (exDone(ex.uid)) { btn.disabled = true; doneVerdict(card, ex); }
+  },
+  match(card, ex){
+    card.append(el('div',{class:'prompt'}, ex.prompt));
+    const sels = ex.left.map(l=>el('select',{'aria-label':l, onchange:()=>{ btn.disabled = sels.some(s=>!s.value); }}, el('option',{value:''}, 'choose…'), ex.right.map(r=>el('option',{value:r}, r))));
+    const rows = el('div',{}); ex.left.forEach((l,i)=> rows.append(el('div',{class:'row'}, el('span',{}, l), sels[i], el('div',{class:'res', id:`mr${i}`}))));
+    const btn = el('button',{class:'primary', disabled:true, onclick: async()=>{ btn.disabled = true;
+      const r = await post('/api/answer', {id:ex.uid, response:{chosen:sels.map(s=>s.value)}});
+      r.truth.forEach((t,i)=>{ $(`#mr${i}`, rows).textContent = sels[i].value===t ? '✓' : `✗ ${t}`; });
+      await afterAnswer(card, ex, r, `${r.right}/${r.total} matched. ${r.explain}`);
+    }}, 'Check');
+    card.append(rows, el('div',{class:'actions'}, btn));
+    if (exDone(ex.uid)) { btn.disabled = true; doneVerdict(card, ex); }
+  },
+  gate(card, ex){
+    card.append(el('div',{class:'prompt'}, ex.prompt));
+    const picks = ex.commands.map(()=>null); const rows = el('div',{});
+    ex.commands.forEach((cmd,i)=>{
+      const seg = el('div',{class:'seg'}, ['Allow','Refuse'].map((lbl,li)=>el('button',{onclick:()=>{ picks[i] = li===0; [...seg.children].forEach((x,xi)=>x.classList.toggle('sel', xi===li)); btn.disabled = picks.includes(null); }}, lbl)));
+      rows.append(el('div',{class:'row'}, el('code',{}, cmd), seg, el('div',{class:'res', id:`gr${i}`})));
+    });
+    const btn = el('button',{class:'primary', disabled:true, onclick: async()=>{ btn.disabled = true;
+      const r = await post('/api/answer', {id:ex.uid, response:{picks}});
+      r.rows.forEach((row,i)=>{ $(`#gr${i}`, rows).textContent = `${row.right?'✓':'✗'} the real script says ${row.allowed?'ALLOW':'REFUSE'} (${row.why})`; });
+      await afterAnswer(card, ex, r, `${r.right}/${r.total} against the allow and deny lists in the repo. ${r.explain}`);
+    }}, 'Submit decisions');
+    card.append(rows, el('div',{class:'actions'}, btn));
+    if (exDone(ex.uid)) { btn.disabled = true; doneVerdict(card, ex); }
+  },
+  explain(card, ex){
+    card.append(el('div',{class:'prompt'}, ex.prompt));
+    const areas = ex.parts.map(p=>{ const t = el('textarea',{style:'min-height:64px', placeholder:p, 'aria-label':p.split(':')[0]}); card.append(el('div',{class:'meta', style:'margin-top:.7rem'}, p.split(':')[0]), t); return t; });
+    const btn = el('button',{class:'primary', onclick: async()=>{
+      const r = await post('/api/answer', {id:ex.uid, response:{parts:areas.map(a=>a.value)}});
+      if (!r.ok && !exDone(ex.uid)) { verdict(card, false, `Missing or too short: ${r.missing.join(', ')}.`); }
+      btn.disabled = true; await afterAnswer(card, ex, r, r.ok ? `Report accepted. ${r.explain}` : `Recorded, with gaps: ${r.missing.join(', ')}. ${r.explain}`);
+    }}, 'Submit report');
+    card.append(el('div',{class:'actions'}, btn));
+    if (exDone(ex.uid)) { btn.disabled = true; doneVerdict(card, ex); }
+  },
+  pledge(card, ex){
+    card.append(el('div',{class:'prompt'}, ex.prompt), el('pre',{}, ex.text));
+    const boxes = ex.rules.map(t=>{ const i = el('input',{type:'checkbox'}); card.append(el('label',{class:'tick'}, i, t)); return i; });
+    const btn = el('button',{class:'primary', onclick: async()=>{ btn.disabled = true;
+      const r = await post('/api/answer', {id:ex.uid, response:{ticked:boxes.map(b=>b.checked)}});
+      await afterAnswer(card, ex, r, `${r.ticked} of ${r.total}. Honest is the point; the ones you left unticked are where your next incident lives. ${r.explain}`);
+    }}, 'Commit to these');
+    card.append(el('div',{class:'actions'}, btn));
+    if (exDone(ex.uid)) { btn.disabled = true; doneVerdict(card, ex); }
+  },
+  lab(card, ex){
+    card.append(el('div',{class:'prompt'}, ex.prompt));
+    if (ex.run) card.append(el('pre',{}, ex.run));
+    if (ex.hint) card.append(el('p',{class:'muted'}, ex.hint));
+    const out = el('pre',{}, 'Looking for the lab result file…'); card.append(out);
+    const status = el('span',{class:'muted'});
+    const check = async()=>{ const r = await post('/api/probe', {id:ex.uid}); out.textContent = `${r.ok?'found':'not found yet'}: ${r.where}${r.found>1?` (${r.found})`:''}`;
+      if (r.ok && r.xp) await afterAnswer(card, ex, {ok:true, ...r}, 'Real run recorded. This one only clears from the lab’s own result file.');
+      else if (!r.ok) status.textContent = 'Run the lab, then check again. No file, no clear.'; };
+    card.append(el('div',{class:'actions'}, el('button',{class:'primary', onclick:check}, 'Check again'), status));
+    if (exDone(ex.uid)) card.append(el('div',{class:'actions'}, el('span',{class:'muted'}, 'Cleared from a real run.'), nextBtn()));
+    check();
+  },
+  fix(card, ex){
+    card.append(el('div',{class:'prompt'}, ex.prompt));
+    card.append(el('p',{class:'muted'}, 'Edit it here, or open ', el('code',{}, ex.workspace), ' in your own editor: this page re-checks every time the file is saved, like ', el('code',{}, 'rustlings watch'), '. Delete the line ', el('code',{}, 'I AM NOT DONE'), ' when the checks pass.'));
+    const ta = el('textarea',{spellcheck:'false', 'aria-label':'exercise file'}); const list = el('ul',{class:'checks'}); const note = el('div',{class:'notice'});
+    let mtime = null, dirty = false, finished = !!exDone(ex.uid);
+    ta.addEventListener('input', ()=>{ dirty = true; });
+    const show = r => { list.innerHTML=''; r.results.forEach(x=> list.append(el('li',{class:x.status}, el('b',{}, x.status.padEnd(5,' ')), ' ', x.name, x.detail&&x.status!=='pass'?el('small',{}, x.detail):null)));
+      note.textContent = r.passed && r.marker ? 'All checks pass. Delete the line “I AM NOT DONE” and save to finish.' : ''; };
+    const check = async()=>{ const r = await post('/api/check', {id:ex.uid}); show(r);
+      if (r.done && !finished){ finished = true; await afterAnswer(card, ex, {ok:true, ...r}, `Done. ${r.explain||''}`); } return r; };
+    const load = async()=>{ const f = await api(q('/api/file', {id:ex.uid})); ta.value = f.text; mtime = f.mtime; dirty = false; };
+    const save = async()=>{ const r = await putText('/api/file', ta.value, {id:ex.uid}); mtime = r.mtime; dirty = false; return check(); };
+    const sol = el('pre',{style:'display:none'});
+    card.append(ta, el('div',{class:'actions'},
+      el('button',{class:'primary', onclick:save}, 'Save & check'),
+      el('button',{onclick:()=>{ note.textContent = ex.hint || 'No hint here; reread the lesson.'; }}, 'Hint'),
+      el('button',{onclick: async()=>{ if (!confirm('Restore the broken original? Your edits are lost.')) return; await post('/api/reset', {id:ex.uid}); await load(); check(); }}, 'Reset'),
+      el('button',{onclick: async()=>{ if (!exDone(ex.uid) && !confirm('Not solved yet. Looking marks this exercise as not mastered. Show the solution?')) return; const r = await post('/api/solution', {id:ex.uid}); sol.textContent = r.text; sol.style.display='block'; }}, 'Solution')),
+      note, list, sol);
+    if (finished) doneVerdict(card, ex);
+    (async()=>{ await load(); await check(); })();
+    POLL = setInterval(async()=>{ try { const f = await api(q('/api/file', {id:ex.uid})); if (f.mtime !== mtime){ if (dirty){ note.textContent = 'The file changed in your editor. Save here to overwrite it, or Reset/reload to take the editor’s version.'; } else { ta.value = f.text; mtime = f.mtime; check(); } } } catch(e){} }, 1500);
+  },
+};
+function verifyBlock(key){
+  const out = el('pre',{style:'display:none'});
+  return el('div',{}, el('div',{class:'actions'}, el('button',{onclick: async()=>{ out.style.display='block'; out.textContent='running…'; const r = await api(q('/api/run',{cmd:key})); out.textContent = r.stdout; }}, 'Run it on this machine'), el('span',{class:'chip mono'}, `read-only: ${key}`)), out);
+}
+
+/* ---------------- review and delayed quiz ---------------- */
+function renderReview(m){
+  m.append(el('h2',{}, 'Review'), el('p',{class:'brief'}, P.due.length ? `${P.due.length} due. Misses come back tomorrow; hits move out to 3, 7, then 21 days.` : 'Nothing due. Come back tomorrow.'));
+  if (!P.due.length) return m.append(el('button',{onclick:()=>go(JSON.parse(store.get('pos')||'{"mode":"home"}'))}, 'Back'));
+  const id = P.due[0]; let ex; T.chapters.forEach(c=>c.exercises.forEach(e=>{ if (e.uid===id) ex = e; }));
+  const card = el('div',{class:'card'}); m.append(card);
+  card.append(el('div',{class:'meta'}, `${ex.type} · ${concept(ex.concept)}`));
+  RENDER[ex.type](card, ex, true);
+}
+async function renderQuiz(m){
+  m.append(el('h2',{}, 'Delayed quiz'), el('p',{class:'brief'}, 'Two days later, no notes, no AI. Write your answer, reveal the model answer, grade yourself honestly. The gap between AI-assisted and manual learners showed up here, not on the task.'));
+  const card = el('div',{class:'card'}); m.append(card); const grades = []; const ans = []; const areas = [];
+  T.quiz.forEach((qq,i)=>{ const t = el('textarea',{style:'min-height:64px','aria-label':`answer ${i+1}`}); const a = el('div',{class:'verdict', style:'display:none'}); ans.push(a); areas.push(t);
+    const g = el('div',{class:'seg', style:'display:none'}, ['I had it','I did not'].map((lbl,li)=>el('button',{onclick:()=>{ grades[i] = li===0; [...g.children].forEach((x,xi)=>x.classList.toggle('sel', xi===li)); fin.disabled = grades.filter(x=>x!==undefined).length < T.quiz.length; }}, lbl)));
+    card.append(el('div',{class:'prompt', style:'margin-top:1rem'}, `${i+1}. ${qq}`), t, a, g); a.grade = g; });
+  const reveal = el('button',{class:'primary', onclick: async()=>{ const r = await api(q('/api/quizanswers')); r.answers.forEach((x,i)=>{ ans[i].textContent = 'Model answer: '+x; ans[i].style.display='block'; ans[i].grade.style.display='inline-flex'; }); reveal.disabled = true; }}, 'Reveal model answers');
+  const fin = el('button',{class:'primary', disabled:true, onclick: async()=>{ fin.disabled = true; const r = await post('/api/quiz', {grades: T.quiz.map((_,i)=>!!grades[i])}); await refresh(); renderRail(); verdict(card, r.right >= Math.ceil(r.total*0.8), `${r.right}/${r.total} two days later. Compare that with how sure you felt right after the chapters.`); }}, 'Finish quiz');
+  card.append(el('div',{class:'actions'}, reveal, fin));
+}
+
+/* ---------------- boot ---------------- */
+function render(){
+  renderRail();
+  const m = $('#main'); m.innerHTML='';
+  if (V.mode==='home' || !T) return renderHome(m);
+  if (V.mode==='review') return renderReview(m);
+  if (V.mode==='quiz') return renderQuiz(m);
+  return renderChapter(m);
+}
+async function openTrack(id, toChapter){
+  T = { id }; await reloadTrack(); await refresh(); store.set('track', id);
+  const saved = JSON.parse(store.get('pos') || 'null');
+  if (toChapter || V.mode==='chapter'){
+    if (saved && saved.mode==='chapter' && saved.ch < T.chapters.length && chState(saved.ch).unlocked) return go(saved);
+    const ci = Math.max(0, P.chapters.findIndex(s=>s.unlocked && !s.cleared)); return go({mode:'chapter', ch:ci, tab:'lesson', ex:firstOpen(ci)});
+  }
+  render();
+}
+(async()=>{
+  try {
+    BOOK = await api('/api/book');
+    const ready = BOOK.tracks.filter(t=>t.status==='ready');
+    const tid = store.get('track') || (ready[0] && ready[0].id);
+    if (tid) { T = {id: tid}; await reloadTrack(); await refresh(); }
+    const saved = JSON.parse(store.get('pos') || 'null');
+    V = saved && saved.mode==='chapter' && T && saved.ch < T.chapters.length ? saved : {mode:'home'};
+    render();
+  } catch(e) { $('#main').textContent = 'Could not load the book: ' + e.message; }
+})();
+</script>
+</body>
+</html>

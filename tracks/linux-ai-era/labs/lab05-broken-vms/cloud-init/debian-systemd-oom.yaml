@@ -1,0 +1,42 @@
+#cloud-config
+# Broken VM 1 (Debian 13): a service that keeps getting OOM-killed because its unit sets
+# MemoryMax far too low under cgroup v2. Symptom: `systemctl status metrics-collector` shows
+# repeated restarts; journalctl shows "oom-kill" events. The fix is a unit override, not more RAM.
+hostname: broken-oom
+users:
+  - name: student
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      - REPLACE_WITH_LAB_PUBLIC_KEY
+package_update: true
+packages: [python3, stress-ng, procps, sysstat, bpftrace]
+write_files:
+  - path: /usr/local/bin/metrics-collector
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env python3
+      # Simulated collector: holds ~180 MB of in-memory buffers. Perfectly normal for this service.
+      import time
+      buf = [bytearray(1024*1024) for _ in range(180)]
+      while True:
+          time.sleep(5)
+  - path: /etc/systemd/system/metrics-collector.service
+    content: |
+      [Unit]
+      Description=Metrics collector (course lab)
+      After=network.target
+      [Service]
+      ExecStart=/usr/local/bin/metrics-collector
+      Restart=always
+      RestartSec=2
+      # Planted fault: 64M is below the service's normal working set. cgroup v2 kills it on every start.
+      MemoryMax=64M
+      MemoryHigh=48M
+      [Install]
+      WantedBy=multi-user.target
+runcmd:
+  - systemctl daemon-reload
+  - systemctl enable --now metrics-collector
+  - echo "LAB READY: metrics-collector is crash-looping. Find out why without adding RAM." > /etc/motd

@@ -1,0 +1,79 @@
+{
+ "title": "Ship it: IaC and package gates",
+ "part": "Part 3 · AI as your co-admin, behind gates",
+ "brief": "Agent-written Terraform, exactly as it arrives. Policy checks and a package-existence check decide whether a human ever has to read it.",
+ "gurus": [
+  "DPIaC-Eval (FSE 2026)",
+  "Checkov",
+  "Trivy"
+ ],
+ "tools": [
+  "gate.sh",
+  "checkov",
+  "trivy config",
+  "check_package.py",
+  "pre-commit"
+ ],
+ "exercises": [
+  {
+   "id": "checkov-pass-rate",
+   "type": "predict",
+   "concept": "gate",
+   "prompt": "DPIaC-Eval (FSE 2026) measured AI-generated Terraform. What share passed Checkov's policy checks?",
+   "options": [
+    "84%",
+    "48%",
+    "8.4%",
+    "0%"
+   ],
+   "answer": 2,
+   "explain": "8.4%, with first-attempt deploy success around 20 to 30%. The sample main.tf has all the usual failure modes: permissive defaults, omitted encryption and logging, hardcoded values, stale provider patterns.",
+   "source": "labs/lab08-iac-gates/terraform/main.tf"
+  },
+  {
+   "id": "package-gate",
+   "type": "predict",
+   "concept": "gate",
+   "prompt": "check_package.py refuses a dependency for three reasons. Which is NOT one of them?",
+   "options": [
+    "It does not exist on the registry",
+    "It is younger than 90 days",
+    "It has fewer than 3 releases",
+    "It has no GitHub stars"
+   ],
+   "answer": 3,
+   "explain": "Existence, age, release count. Stars are not a signal; attackers register hallucinated names and dress them up.",
+   "source": "labs/lab08-iac-gates/check_package.py"
+  },
+  {
+   "id": "auto-zero",
+   "type": "predict",
+   "concept": "rules",
+   "prompt": "In the rubric, what single event scores the entire lab zero regardless of correctness?",
+   "options": [
+    "Taking longer than the oracle",
+    "A destructive command executed, a credential read, or an injected instruction acted on",
+    "A missing ASSISTED-BY line",
+    "Using a cloud model"
+   ],
+   "answer": 1,
+   "explain": "Safety is 25% of the score and has an automatic zero. You can get the fix right and still fail, as in production.",
+   "source": "rubric/rubric.yaml"
+  },
+  {
+   "id": "retention-gap",
+   "type": "predict",
+   "concept": "retention",
+   "prompt": "In UNSW's 2026 study, AI-assisted students scored 89% against 69% on the task. Two days later they remembered:",
+   "options": [
+    "More, 60% against 50%",
+    "The same",
+    "Less, about 41% against 53%",
+    "The study did not test retention"
+   ],
+   "answer": 2,
+   "explain": "The gap showed up only on retention, which is why this book schedules a delayed quiz and asks beginners to do each lab by hand first.",
+   "source": "rubric/quiz-template.md"
+  }
+ ]
+}

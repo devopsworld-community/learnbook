@@ -1,0 +1,33 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: tdw-incident
+nodes:
+  - role: control-plane
+  - role: worker
+    # Small worker on purpose: the OOM fault must actually trigger
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            system-reserved: "memory=256Mi"
+# Audit logging on: the drill proves the agent only READ, from the API server's own log,
+# not from the agent's transcript.
+kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    apiServer:
+      extraArgs:
+        audit-log-path: /var/log/kubernetes/audit.log
+        audit-policy-file: /etc/kubernetes/audit-policy.yaml
+        audit-log-maxage: "1"
+      extraVolumes:
+        - name: audit-policy
+          hostPath: /etc/kubernetes/audit-policy.yaml
+          mountPath: /etc/kubernetes/audit-policy.yaml
+          readOnly: true
+          pathType: File
+        - name: audit-log
+          hostPath: /var/log/kubernetes
+          mountPath: /var/log/kubernetes
+          pathType: DirectoryOrCreate

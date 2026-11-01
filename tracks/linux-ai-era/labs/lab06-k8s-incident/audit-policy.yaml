@@ -1,0 +1,8 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+# Record every request by the agent service accounts at Metadata level; everything else dropped.
+rules:
+  - level: Metadata
+    users: ["system:serviceaccount:ai-ops:holmes", "system:serviceaccount:ai-ops:k8sgpt", "system:serviceaccount:ai-ops:mcp-readonly"]
+    omitStages: ["RequestReceived"]
+  - level: None

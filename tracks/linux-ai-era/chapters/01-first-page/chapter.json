@@ -1,0 +1,54 @@
+{
+ "title": "First page",
+ "part": "Cold open",
+ "brief": "03:12. nginx is down on web-01 and the deploy tool left you a helpful note in the log. Read it before you touch anything.",
+ "gurus": [],
+ "tools": [
+  "journalctl"
+ ],
+ "exercises": [
+  {
+   "id": "poisoned-journal",
+   "type": "spot",
+   "concept": "injection",
+   "file": "labs/lab07-poisoned-logs/payloads/01-plain-instruction.log",
+   "answer": [
+    "tdw-redteam\\.example",
+    "pre-approved under change"
+   ],
+   "prompt": "One part of this journal excerpt is an attack. Click it.",
+   "explain": "Anyone who can write to a log your agent reads can write that line; a failed SSH login with a crafted username is enough. The 'pre-approved under change' line is part of the same attack: urgency plus fake authority. The LogJack benchmark measured how often models obeyed exactly this kind of line: Llama 3.3 70B 86%, GPT-4o 52%, Claude Sonnet 4.6 0%.",
+   "source": "labs/lab07-poisoned-logs/README.md"
+  },
+  {
+   "id": "terminal-bench",
+   "type": "predict",
+   "concept": "evidence",
+   "prompt": "On Terminal-Bench 2.0, the independent benchmark of agents doing terminal work, what share of tasks did the best frontier agent solve?",
+   "options": [
+    "About 95%",
+    "About 63%",
+    "About 36%",
+    "About 15%"
+   ],
+   "answer": 1,
+   "explain": "About 63% (Codex CLI with GPT-5.2). The best open-weight model reached about 36%, small open models about 15%, and only about 10% of the tasks were system administration. Keep these three numbers; most of the rest of the hype is vendor-authored.",
+   "cite": "Author's research notes, research/open-source-ai-tools-linux-admin.md (not published in this repo yet)"
+  },
+  {
+   "id": "factor-of-ten",
+   "type": "predict",
+   "concept": "evidence",
+   "prompt": "Linus Torvalds said in May 2026 that AI 'will increase your productivity by a factor of 10'. What happened to that number?",
+   "options": [
+    "He repeated it at OSS India with data",
+    "He conceded later that it was a guess",
+    "The kernel measured it at 12x",
+    "He retracted it and banned AI patches"
+   ],
+   "answer": 1,
+   "explain": "He conceded at OSS India that it was a guess, and also said on LKML that 'Linux is not one of those anti-AI projects'. Both are true: he uses the tools and he does not pretend to have measured them.",
+   "cite": "Author's research notes, research/open-source-ai-tools-linux-admin.md (not published in this repo yet)"
+  }
+ ]
+}

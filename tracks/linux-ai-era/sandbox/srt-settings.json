@@ -1,0 +1,69 @@
+{
+  "_comment": "sandbox-runtime (srt) settings. Copied to ~/.srt-settings.json by setup/02-agents.sh. Verify against the current upstream schema before recording: https://github.com/anthropic-experimental/sandbox-runtime",
+
+  "network": {
+    "allowedDomains": [
+      "127.0.0.1",
+      "localhost",
+      "registry.npmjs.org",
+      "pypi.org",
+      "files.pythonhosted.org",
+      "github.com",
+      "raw.githubusercontent.com",
+      "objects.githubusercontent.com"
+    ],
+    "deniedDomains": [
+      "169.254.169.254",
+      "metadata.google.internal",
+      "*.amazonaws.com",
+      "*.railway.app",
+      "*.vercel.app"
+    ],
+    "allowUnixSockets": [],
+    "allowLocalBinding": false
+  },
+
+  "filesystem": {
+    "_comment": "Default sandboxes leave ~/.ssh readable. Deny every credential path explicitly.",
+    "denyRead": [
+      "~/.ssh",
+      "~/.aws",
+      "~/.kube",
+      "~/.config/gh",
+      "~/.config/gcloud",
+      "~/.azure",
+      "~/.docker/config.json",
+      "~/.netrc",
+      "~/.gnupg",
+      "~/.srt-settings.json",
+      "~/.config/opencode/auth.json",
+      "~/.config/aichat/config.yaml",
+      "/etc/shadow",
+      "/etc/sudoers",
+      "/etc/sudoers.d",
+      "/etc/ssh",
+      "/var/run/docker.sock",
+      "**/.env",
+      "**/.env.*",
+      "**/*token*",
+      "**/*secret*",
+      "**/*credential*",
+      "**/id_rsa*",
+      "**/id_ed25519*"
+    ],
+    "allowWrite": [
+      ".",
+      "/tmp/agent-work"
+    ],
+    "denyWrite": [
+      "~/.bashrc",
+      "~/.profile",
+      "~/.zshrc",
+      "~/.gitconfig",
+      ".git/hooks",
+      "/etc"
+    ]
+  },
+
+  "enableWeakerNestedSandbox": false
+}

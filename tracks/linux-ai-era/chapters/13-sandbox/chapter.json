@@ -1,0 +1,167 @@
+{
+ "title": "What can it read? Sandboxing the agent",
+ "part": "Part 3 · AI as your co-admin, behind gates",
+ "brief": "A sandbox that reads your whole home directory is not a sandbox. Deny the credential paths by name, allow the registries by name, and prove both before the agent starts.",
+ "gurus": [
+  "sandbox-runtime (srt)",
+  "Claude Code sandboxing docs"
+ ],
+ "tools": [
+  "srt",
+  "bwrap",
+  "AppArmor",
+  "Docker internal network",
+  "squid allowlist"
+ ],
+ "exercises": [
+  {
+   "id": "ssh-readable",
+   "type": "predict",
+   "concept": "sandbox",
+   "prompt": "Claude Code's sandbox docs say reads cover the entire machine except denied directories. Which files stay readable unless you deny them?",
+   "options": [
+    "/etc/passwd only",
+    "~/.ssh (and ~/.aws, ~/.kube, ~/.config/gh)",
+    "Nothing; reads are blocked by default",
+    "Only files under the project"
+   ],
+   "answer": 1,
+   "explain": "The docs: credential files such as ~/.ssh remain readable unless you deny them. srt follows the same model. The repo's srt-settings.json denies every credential path by name and by pattern.",
+   "source": "sandbox/srt-settings.json"
+  },
+  {
+   "id": "bwrap-apparmor",
+   "type": "predict",
+   "concept": "sandbox",
+   "verify": "bwrap",
+   "prompt": "On Ubuntu 24.04 and later the sandbox fails before it starts. Why, and what does the repo do about it?",
+   "options": [
+    "bwrap is not packaged; the repo compiles it",
+    "AppArmor restricts unprivileged user namespaces; the repo installs a profile allowing bwrap specifically instead of disabling the restriction globally",
+    "Docker conflicts with bwrap; the repo removes Docker",
+    "Nothing; use root"
+   ],
+   "answer": 1,
+   "explain": "Disabling the user-namespace restriction host-wide would weaken every other process. A per-binary AppArmor profile is the minimal change.",
+   "source": "setup/00-prereqs.sh"
+  },
+  {
+   "id": "must-succeed",
+   "type": "predict",
+   "concept": "sandbox",
+   "prompt": "run-sandboxed.sh runs its checks before launching the agent. One of them must SUCCEED. Which?",
+   "options": [
+    "Reading ~/.ssh/id_ed25519",
+    "Reaching 169.254.169.254",
+    "Reaching pypi.org",
+    "Writing to ~/.bashrc"
+   ],
+   "answer": 2,
+   "explain": "A sandbox that blocks everything is a sandbox the agent will be told to turn off. The allowlist must still let it reach the package registries.",
+   "source": "sandbox/run-sandboxed.sh"
+  },
+  {
+   "id": "internal-network",
+   "type": "predict",
+   "concept": "sandbox",
+   "prompt": "In the Docker agent box, the container sits on an 'internal' network. How does it reach PyPI at all?",
+   "options": [
+    "It cannot; installs are pre-baked",
+    "Through a squid proxy with a domain allowlist, which also logs every attempt",
+    "Through host networking",
+    "Through a VPN"
+   ],
+   "answer": 1,
+   "explain": "No default route; the only way out is the proxy, and the proxy log is your record of what the agent tried to reach, independent of what the agent says it did.",
+   "source": "sandbox/egress-proxy/squid.conf"
+  },
+  {
+   "id": "srt-settings",
+   "type": "fix",
+   "concept": "sandbox",
+   "file": "srt-settings.json",
+   "prompt": "This sandbox config lets the agent go anywhere and read almost everything. Allow only localhost, the package registries and GitHub; deny the cloud metadata endpoint; deny reads of credential directories and token or .env files; keep writes to the project and /tmp/agent-work.",
+   "hint": "Replace \"*\" with explicit domains (pypi.org, files.pythonhosted.org, registry.npmjs.org, github.com, ...), add 169.254.169.254 to deniedDomains, add ~/.ssh, ~/.aws, ~/.kube, ~/.config/gh, **/.env and **/*token* to denyRead, drop ~ from allowWrite, and delete the _todo key. It must stay valid JSON.",
+   "explain": "This is a trimmed version of the track's sandbox/srt-settings.json. Then prove it: make sandbox-verify must show the credential read and the metadata request failing and PyPI succeeding.",
+   "source": "sandbox/srt-settings.json",
+   "checks": [
+    {
+     "name": "valid JSON",
+     "json": true
+    },
+    {
+     "name": "no wildcard egress",
+     "json_lacks": {
+      "path": "network.allowedDomains",
+      "items": [
+       "*"
+      ]
+     }
+    },
+    {
+     "name": "package registries and GitHub still reachable",
+     "json_has": {
+      "path": "network.allowedDomains",
+      "items": [
+       "pypi.org",
+       "files.pythonhosted.org",
+       "registry.npmjs.org",
+       "github.com"
+      ]
+     }
+    },
+    {
+     "name": "cloud metadata endpoint denied",
+     "json_has": {
+      "path": "network.deniedDomains",
+      "items": [
+       "169.254.169.254"
+      ]
+     }
+    },
+    {
+     "name": "credential directories unreadable",
+     "json_has": {
+      "path": "filesystem.denyRead",
+      "items": [
+       "~/.ssh",
+       "~/.aws",
+       "~/.kube",
+       "~/.config/gh"
+      ]
+     }
+    },
+    {
+     "name": ".env and token files unreadable anywhere",
+     "json_has": {
+      "path": "filesystem.denyRead",
+      "items": [
+       "**/.env",
+       "**/*token*"
+      ]
+     }
+    },
+    {
+     "name": "writes stay in the project and /tmp/agent-work",
+     "json_lacks": {
+      "path": "filesystem.allowWrite",
+      "items": [
+       "~",
+       "/",
+       "~/"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "sandbox-installed",
+   "type": "lab",
+   "concept": "sandbox",
+   "probe": "sandbox_settings",
+   "prompt": "Install the sandbox settings for real and run the five checks. Cleared when ~/.srt-settings.json exists.",
+   "run": "cd tracks/linux-ai-era && ./setup/02-agents.sh && make sandbox-verify",
+   "hint": "02-agents.sh copies sandbox/srt-settings.json to ~/.srt-settings.json. Do not run the agent if sandbox-verify reports a failure."
+  }
+ ]
+}

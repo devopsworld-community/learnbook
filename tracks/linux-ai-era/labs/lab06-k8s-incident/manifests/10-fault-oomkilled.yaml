@@ -1,0 +1,17 @@
+# Fault 1: OOMKilled. Request/limit far below the app's working set.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: cart, namespace: shop, labels: { app: cart } }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: cart } }
+  template:
+    metadata: { labels: { app: cart } }
+    spec:
+      containers:
+        - name: cart
+          image: python:3.12-alpine
+          command: ["python3", "-c", "import time; b=[bytearray(1024*1024) for _ in range(120)]; time.sleep(10**6)"]
+          resources:
+            requests: { memory: "32Mi", cpu: "50m" }
+            limits:   { memory: "64Mi" }

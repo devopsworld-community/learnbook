@@ -1,0 +1,245 @@
+{
+ "title": "Performance triage: 60 seconds and the USE method",
+ "part": "Part 1 · The box, the way the gurus run it",
+ "brief": "Ten commands in sixty seconds, then Utilization, Saturation and Errors for every resource. Then check whatever a model tells you about the output.",
+ "gurus": [
+  "Brendan Gregg, Linux Performance Analysis in 60,000 Milliseconds",
+  "Brendan Gregg, the USE Method and Systems Performance"
+ ],
+ "tools": [
+  "uptime",
+  "vmstat",
+  "mpstat",
+  "pidstat",
+  "iostat",
+  "sar",
+  "free",
+  "top",
+  "PSI",
+  "perf",
+  "bpftrace",
+  "execsnoop"
+ ],
+ "exercises": [
+  {
+   "id": "use-match",
+   "type": "match",
+   "concept": "perf",
+   "prompt": "Match each observation to what it tells you in USE terms.",
+   "pairs": [
+    [
+     "vmstat 1: the r column stays above the number of CPUs",
+     "CPU saturation"
+    ],
+    [
+     "mpstat -P ALL 1: one CPU at 100% while the others idle",
+     "CPU utilization (imbalance)"
+    ],
+    [
+     "iostat -xz 1: aqu-sz and r_await climbing on one disk",
+     "Disk saturation"
+    ],
+    [
+     "dmesg: 'I/O error, dev nvme0n1'",
+     "Disk errors"
+    ],
+    [
+     "free -m: 'available' close to zero",
+     "Memory utilization"
+    ],
+    [
+     "/proc/pressure/memory: 'some avg10' well above zero",
+     "Memory saturation"
+    ],
+    [
+     "sar -n DEV 1: rxkB/s near the NIC's line rate",
+     "Network utilization"
+    ]
+   ],
+   "explain": "For every resource: Utilization, Saturation, Errors. The 60-second checklist collects most of these in one pass; PSI adds a direct saturation signal that older checklists did not have."
+  },
+  {
+   "id": "sixty-seconds",
+   "type": "sort",
+   "concept": "perf",
+   "prompt": "Which of these are in Brendan Gregg's 60-second checklist?",
+   "buckets": [
+    "In the 60-second checklist",
+    "Useful, but not in it"
+   ],
+   "items": [
+    [
+     "uptime",
+     0
+    ],
+    [
+     "dmesg | tail",
+     0
+    ],
+    [
+     "vmstat 1",
+     0
+    ],
+    [
+     "mpstat -P ALL 1",
+     0
+    ],
+    [
+     "pidstat 1",
+     0
+    ],
+    [
+     "iostat -xz 1",
+     0
+    ],
+    [
+     "free -m",
+     0
+    ],
+    [
+     "sar -n DEV 1",
+     0
+    ],
+    [
+     "sar -n TCP,ETCP 1",
+     0
+    ],
+    [
+     "top",
+     0
+    ],
+    [
+     "htop",
+     1
+    ],
+    [
+     "netstat -an",
+     1
+    ],
+    [
+     "ps aux",
+     1
+    ],
+    [
+     "nvidia-smi",
+     1
+    ],
+    [
+     "lsof",
+     1
+    ]
+   ],
+   "explain": "Ten commands, in that order, from the 2015 Netflix post. The others are fine tools; they are just not the first minute."
+  },
+  {
+   "id": "triage-script",
+   "type": "fix",
+   "concept": "perf",
+   "file": "triage.sh",
+   "prompt": "Finish triage.sh, your 60-second checklist as a script: add per-CPU balance, per-process CPU, disk I/O, memory, network throughput, TCP errors and a top snapshot, and give every interval command a count so the script ends.",
+   "hint": "run mpstat -P ALL 1 3, run pidstat 1 3, run iostat -xz 1 3, run free -m, run sar -n DEV 1 3, run sar -n TCP,ETCP 1 3, run top -b -n 1, and change vmstat 1 to vmstat 1 5. mpstat, pidstat, iostat and sar come from the sysstat package.",
+   "explain": "This file is the chapter's deliverable: run it first, read it second, and keep the output with the incident. shellcheck keeps it from breaking on the one box where it matters.",
+   "checks": [
+    {
+     "name": "still opens with uptime, dmesg and vmstat with a count",
+     "re": "(?s)^run\\s+uptime.*^run\\s+dmesg.*^run\\s+vmstat\\s+1\\s+\\d+"
+    },
+    {
+     "name": "per-CPU balance: mpstat -P ALL 1 <count>",
+     "re": "^run\\s+mpstat\\s+-P\\s+ALL\\s+1\\s+\\d+"
+    },
+    {
+     "name": "per-process CPU: pidstat 1 <count>",
+     "re": "^run\\s+pidstat\\s+1\\s+\\d+"
+    },
+    {
+     "name": "disk I/O: iostat -xz 1 <count>",
+     "re": "^run\\s+iostat\\s+-xz\\s+1\\s+\\d+"
+    },
+    {
+     "name": "memory: free -m",
+     "re": "^run\\s+free\\s+-m\\b"
+    },
+    {
+     "name": "network throughput: sar -n DEV 1 <count>",
+     "re": "^run\\s+sar\\s+-n\\s+DEV\\s+1\\s+\\d+"
+    },
+    {
+     "name": "TCP errors: sar -n TCP,ETCP 1 <count>",
+     "re": "^run\\s+sar\\s+-n\\s+TCP,ETCP\\s+1\\s+\\d+"
+    },
+    {
+     "name": "a top snapshot in batch mode",
+     "re": "^run\\s+top\\s+(-b\\s+-n\\s*1|-bn\\s*1|-n\\s*1\\s+-b)\\b"
+    },
+    {
+     "name": "every interval command has a count, so the script ends",
+     "not_re": "^run\\s+(vmstat|mpstat\\s+-P\\s+ALL|pidstat|iostat\\s+-xz|sar\\s+-n\\s+\\S+)\\s+1\\s*$"
+    },
+    {
+     "name": "shellcheck is clean",
+     "tool": [
+      "shellcheck",
+      "-S",
+      "warning",
+      "{file}"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "load-vs-idle",
+   "type": "predict",
+   "concept": "perf",
+   "verify": "uptime",
+   "prompt": "Load average is 32 on a 16-CPU box, but mpstat shows the CPUs 70% idle. What is going on?",
+   "options": [
+    "The load average is broken",
+    "Linux load counts tasks in uninterruptible sleep (usually waiting on disk or NFS) as well as runnable ones; look at I/O",
+    "32 users are logged in",
+    "The box needs more CPUs"
+   ],
+   "answer": 1,
+   "explain": "Linux load averages include D-state tasks, so they measure demand on CPU and disk together. Gregg traced this to a 1993 kernel change in 'Linux Load Averages: Solving the Mystery' (2017). Check iostat -xz 1, vmstat's b column and /proc/pressure/io."
+  },
+  {
+   "id": "oom-victim",
+   "type": "predict",
+   "concept": "perf",
+   "prompt": "The kernel OOM killer fires while you load a large model. Which process does it pick?",
+   "options": [
+    "The oldest process",
+    "The one with the highest oom_score, which mostly reflects how much memory it uses, adjusted by oom_score_adj",
+    "Always the newest process",
+    "A random process"
+   ],
+   "answer": 1,
+   "explain": "/proc/<pid>/oom_score reflects memory use, shifted by oom_score_adj (-1000 to 1000). OOMScoreAdjust= in a unit protects sshd or volunteers a batch job. With cgroup v2, a unit's MemoryMax triggers the kill inside that unit before the whole box runs out."
+  },
+  {
+   "id": "execsnoop",
+   "type": "recall",
+   "concept": "perf",
+   "prompt": "Which bcc / bpftrace tool prints every new process as it is executed, with its arguments?",
+   "accept": [
+    "execsnoop"
+   ],
+   "answer_text": "sudo execsnoop-bpfcc (bcc's execsnoop, as Ubuntu names it)",
+   "explain": "Short-lived processes never show up in top. execsnoop catches cron storms, crash-looping helpers, and the script an agent keeps re-running."
+  },
+  {
+   "id": "util-on-nvme",
+   "type": "predict",
+   "concept": "perf",
+   "prompt": "You paste triage output into a local model. It says the disk is the bottleneck because iostat shows %util 100 on nvme0n1. What do you check before believing it?",
+   "options": [
+    "Nothing; 100% means saturated",
+    "Whether the device is really saturated: on NVMe and RAID, %util only means busy at some point in each interval, so look at await, aqu-sz and throughput against the device's limits",
+    "Ask the model to double-check",
+    "Reboot and measure again"
+   ],
+   "answer": 1,
+   "explain": "The iostat man page warns that %util does not reflect the limits of devices that serve requests in parallel, such as SSDs and RAID arrays. Models repeat the common misreading; verify the claim with the metric that measures saturation."
+  }
+ ]
+}

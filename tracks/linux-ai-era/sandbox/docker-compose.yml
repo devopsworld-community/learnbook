@@ -1,0 +1,59 @@
+# Whole-process isolation for an agent: a container on an internal network whose ONLY route out
+# is a squid proxy with a domain allowlist. Use this when you turn approval prompts off
+# (Ronacher's rule: if you drop the prompts, move the dev env into Docker).
+#
+#   docker compose -f sandbox/docker-compose.yml up -d egress
+#   docker compose -f sandbox/docker-compose.yml run --rm agent
+#
+# Ollama stays on the host (GPU); the agent reaches it via host.docker.internal on the egress proxy.
+
+services:
+  egress:
+    image: ubuntu/squid:6.6-24.04_beta
+    container_name: agent-egress
+    volumes:
+      - ./egress-proxy/squid.conf:/etc/squid/squid.conf:ro
+    networks:
+      agent-internal:
+        aliases: [egress]
+      outside: {}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: ..
+      dockerfile: sandbox/Dockerfile.agent
+    container_name: agent-box
+    working_dir: /work
+    volumes:
+      - ../:/work:rw                 # the lab repo only. Never mount $HOME.
+      - agent-home:/home/agent
+    environment:
+      HTTP_PROXY: http://egress:3128
+      HTTPS_PROXY: http://egress:3128
+      NO_PROXY: ""
+      OLLAMA_HOST: http://egress:3128  # Ollama reached through the proxy's host.docker.internal rule
+      OPENAI_BASE_URL: http://host.docker.internal:11434/v1
+    networks:
+      - agent-internal                # internal: true => no default route to the internet
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=1g
+    pids_limit: 512
+    mem_limit: 4g
+    stdin_open: true
+    tty: true
+    command: ["bash"]
+
+networks:
+  agent-internal:
+    internal: true
+  outside: {}
+
+volumes:
+  agent-home: {}

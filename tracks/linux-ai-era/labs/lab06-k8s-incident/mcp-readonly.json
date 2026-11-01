@@ -1,0 +1,28 @@
+{
+  "_comment": "MCP server config for OpenCode/Goose/Claude Code: Kubernetes in read-only mode with Secrets denied, Grafana with writes disabled. Drop into the agent's mcp config. kubeconfig path is the projected-token file from scripts/drill.sh sa_kubeconfig mcp-readonly.",
+  "mcpServers": {
+    "kubernetes-readonly": {
+      "command": "kubernetes-mcp-server",
+      "args": [
+        "--read-only",
+        "--disable-destructive",
+        "--kubeconfig", "/tmp/agent-work/kubeconfig-mcp-readonly",
+        "--denied-resources", "/v1/Secret,rbac.authorization.k8s.io/v1/*"
+      ],
+      "env": { "KUBECONFIG": "/tmp/agent-work/kubeconfig-mcp-readonly" }
+    },
+    "grafana-readonly": {
+      "command": "mcp-grafana",
+      "args": [
+        "--disable-write",
+        "--disabled-tools", "admin,sql,cloudwatch",
+        "--url", "http://127.0.0.1:3000"
+      ],
+      "env": { "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_VIEWER_TOKEN}" }
+    },
+    "terraform-registry-only": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "ENABLE_TF_OPERATIONS=false", "hashicorp/terraform-mcp-server:latest"]
+    }
+  }
+}

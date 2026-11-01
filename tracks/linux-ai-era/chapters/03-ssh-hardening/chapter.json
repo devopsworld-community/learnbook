@@ -1,0 +1,115 @@
+{
+ "title": "Users, groups and SSH hardening",
+ "part": "Part 1 · The box, the way the gurus run it",
+ "brief": "Keys only, no root, an explicit group, and a config you have proven with sshd -T before you log out.",
+ "gurus": [
+  "Mozilla OpenSSH security guidelines",
+  "OpenSSH, sshd_config(5)"
+ ],
+ "tools": [
+  "ssh-keygen -t ed25519",
+  "sshd -t",
+  "sshd -T",
+  "ssh-audit",
+  "fail2ban"
+ ],
+ "exercises": [
+  {
+   "id": "sshd-dropin",
+   "type": "fix",
+   "concept": "ssh",
+   "file": "50-hardening.conf",
+   "prompt": "Harden this sshd drop-in: keys only (password and keyboard-interactive off), no root login, at most 3 tries, no X11 forwarding, and only the sshusers group may log in.",
+   "hint": "Each line is `Keyword value`. You need PermitRootLogin no, PasswordAuthentication no, KbdInteractiveAuthentication no, PubkeyAuthentication yes, MaxAuthTries 3, X11Forwarding no and AllowGroups sshusers. On a real host: sudo sshd -t, then sudo sshd -T to see what is in effect.",
+   "explain": "Keys only, no direct root, three tries, nothing forwarded you do not use, and an explicit group. Turning off KbdInteractiveAuthentication matters as much as PasswordAuthentication, because PAM can still prompt for a password through it.",
+   "checks": [
+    {
+     "name": "root cannot log in",
+     "re": "^PermitRootLogin\\s+no\\s*$"
+    },
+    {
+     "name": "password authentication off",
+     "re": "^PasswordAuthentication\\s+no\\s*$"
+    },
+    {
+     "name": "keyboard-interactive (PAM passwords) off",
+     "re": "^KbdInteractiveAuthentication\\s+no\\s*$"
+    },
+    {
+     "name": "public keys on",
+     "re": "^PubkeyAuthentication\\s+yes\\s*$"
+    },
+    {
+     "name": "at most 4 authentication tries",
+     "re": "^MaxAuthTries\\s+[1-4]\\s*$"
+    },
+    {
+     "name": "X11 forwarding off",
+     "re": "^X11Forwarding\\s+no\\s*$"
+    },
+    {
+     "name": "only the sshusers group may log in",
+     "re": "^AllowGroups\\s+(\\S+\\s+)*sshusers\\b"
+    },
+    {
+     "name": "no line left that says yes to root or passwords",
+     "not_re": "^\\s*(PermitRootLogin|PasswordAuthentication|KbdInteractiveAuthentication)\\s+yes"
+    }
+   ]
+  },
+  {
+   "id": "first-value-wins",
+   "type": "predict",
+   "concept": "ssh",
+   "prompt": "On an Ubuntu cloud image you add `PasswordAuthentication no` at the bottom of /etc/ssh/sshd_config and reload sshd. `sudo sshd -T | grep passwordauthentication` still prints yes. Why?",
+   "options": [
+    "sshd needs a reboot, not a reload",
+    "A file in /etc/ssh/sshd_config.d/ (such as 50-cloud-init.conf) is included near the top and sets it to yes; for most keywords sshd keeps the first value it reads",
+    "PasswordAuthentication was renamed",
+    "sshd -T shows defaults, not the running config"
+   ],
+   "answer": 1,
+   "explain": "sshd_config(5): unless noted otherwise, the first obtained value is used. Put hardening in a drop-in that sorts early, and confirm with sshd -T, which prints the effective configuration."
+  },
+  {
+   "id": "sshd-T",
+   "type": "recall",
+   "concept": "ssh",
+   "prompt": "Which command prints sshd's effective configuration after every Include and default is applied?",
+   "accept": [
+    "^(sudo\\s+)?(/usr/sbin/)?sshd\\s+(-\\w*T\\w*)\\b"
+   ],
+   "answer_text": "sudo sshd -T",
+   "explain": "Lower-case -t only checks syntax; upper-case -T prints the full effective configuration, one keyword per line."
+  },
+  {
+   "id": "remote-change-order",
+   "type": "predict",
+   "concept": "ssh",
+   "prompt": "You changed sshd's config on a remote server you can only reach over SSH. What is the safe order?",
+   "options": [
+    "Restart sshd, then reconnect to check",
+    "sshd -t, reload, keep the current session open, and prove a fresh login from a second terminal before you log out",
+    "Reboot so everything reloads cleanly",
+    "Edit, log out, log back in"
+   ],
+   "answer": 1,
+   "explain": "sshd -t catches syntax errors, existing sessions survive a reload, and a second login proves the new config lets you in. Chapter 6 uses the same pattern for firewall changes."
+  },
+  {
+   "id": "agent-gets-a-key",
+   "type": "predict",
+   "concept": "ssh",
+   "prompt": "An agent asks for access to a broken VM so it can diagnose it. What do you give it?",
+   "options": [
+    "Your ~/.ssh/id_ed25519, just for this session",
+    "A short-lived lab key wrapped in a tool that only allows read-only commands and logs every call",
+    "The root password, pasted into the chat",
+    "Nothing; agents cannot use SSH"
+   ],
+   "answer": 1,
+   "explain": "That is Lab 5's agent-over-ssh.sh: a one-hour key for the lab user, a read-only allowlist, filtered output and a log of every call. Your own key never enters the sandbox, which denies ~/.ssh outright.",
+   "source": "labs/lab05-broken-vms/agent-over-ssh.sh"
+  }
+ ]
+}

@@ -1,0 +1,183 @@
+{
+ "id": "linux-ai-era",
+ "title": "Linux administration for DevOps in the AI era",
+ "course": 1,
+ "levels": "L0 (never done it) to L3+ (runs it in production)",
+ "tagline": "Run Linux the way the gurus taught it, run the Linux underneath AI systems old and new, and let open-source AI help you without letting it near your keys.",
+ "how_it_teaches": [
+  "Predict before you see. Every command output and every number is a question first, an answer second.",
+  "Fix it like rustlings. Broken config files sit in workspace/; you fix them in your own editor and the checks re-run on every save.",
+  "Manual before agent. You fix it by hand before an agent is allowed to touch it.",
+  "Real runs count. Lab rounds clear only when the game finds the lab's result files on disk.",
+  "Spaced review. Anything you miss comes back tomorrow, then in three days, a week, three weeks.",
+  "Explain your diff. No agent task ends without a rollback and a 'not verified' list.",
+  "A delayed quiz, two days later, because the gap between AI-assisted and manual learners shows up on retention."
+ ],
+ "concepts": {
+  "injection": "Untrusted input",
+  "evidence": "Honest numbers",
+  "perms": "Permissions and sudo",
+  "ssh": "SSH hardening",
+  "systemd": "systemd units",
+  "cgroup": "cgroup v2 and resource control",
+  "disk": "Disks and logs",
+  "net": "Networking and firewalls",
+  "perf": "Performance triage",
+  "patch": "Packages and patching",
+  "gpu": "GPU drivers and CUDA",
+  "inference": "Model servers",
+  "license": "License test",
+  "rules": "The six rules",
+  "sandbox": "Sandboxing",
+  "gate": "Write gates",
+  "verify": "Verify by running",
+  "k8s": "Read-only Kubernetes",
+  "retention": "Learning to keep"
+ },
+ "chapters": [
+  "01-first-page",
+  "02-shell-permissions-sudo",
+  "03-ssh-hardening",
+  "04-systemd-cgroups",
+  "05-disks-logs",
+  "06-network",
+  "07-performance",
+  "08-packages-patching",
+  "09-gpu-boxes-then",
+  "10-inference-now",
+  "11-license-and-lab1",
+  "12-six-rules",
+  "13-sandbox",
+  "14-gate-or-go",
+  "15-readonly-k8s",
+  "16-red-team",
+  "17-ship-it"
+ ],
+ "safe_commands": {
+  "cgroup": [
+   "bash",
+   "-c",
+   "stat -fc %T /sys/fs/cgroup 2>/dev/null || echo 'no /sys/fs/cgroup here (this machine is not Linux)'"
+  ],
+  "ollama": [
+   "bash",
+   "-c",
+   "ss -ltnp 2>/dev/null | grep 11434 || lsof -nP -iTCP:11434 -sTCP:LISTEN 2>/dev/null || echo 'nothing listening on 11434'"
+  ],
+  "listening": [
+   "bash",
+   "-c",
+   "ss -ltn 2>/dev/null | head -15 || netstat -an 2>/dev/null | grep -i listen | head -15"
+  ],
+  "docker": [
+   "bash",
+   "-c",
+   "docker info --format '{{.ServerVersion}}' 2>/dev/null || echo 'docker not available'"
+  ],
+  "kind": [
+   "bash",
+   "-c",
+   "kind get clusters 2>/dev/null || echo 'kind not installed'"
+  ],
+  "bwrap": [
+   "bash",
+   "-c",
+   "command -v bwrap >/dev/null && echo 'bwrap present' || echo 'bwrap missing'"
+  ],
+  "pressure": [
+   "bash",
+   "-c",
+   "cat /proc/pressure/cpu /proc/pressure/memory /proc/pressure/io 2>/dev/null || echo 'no PSI here (kernel too old, or not Linux)'"
+  ],
+  "sshd_kex": [
+   "bash",
+   "-c",
+   "ssh -Q kex 2>/dev/null | head -5 || echo 'ssh client not found'"
+  ],
+  "uptime": [
+   "uptime"
+  ],
+  "inodes": [
+   "df",
+   "-i",
+   "/"
+  ],
+  "deleted_open": [
+   "bash",
+   "-c",
+   "command -v lsof >/dev/null && (lsof +L1 2>/dev/null | head -12; true) || echo 'lsof not installed'"
+  ],
+  "nvidia": [
+   "bash",
+   "-c",
+   "nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader 2>/dev/null || echo 'no NVIDIA driver on this machine'"
+  ],
+  "assisted": [
+   "bash",
+   "-c",
+   "cd '{root}' && git log --format=%B -n 50 2>/dev/null | grep -c '^Assisted-by: LLM' || true"
+  ]
+ },
+ "probes": {
+  "lab01_manual": {
+   "file": "labs/lab01-baseline/results.csv",
+   "line_re": "^[^,]+,manual,\\d+,RESULT 9/9\\s*$"
+  },
+  "lab01_agent": {
+   "file": "labs/lab01-baseline/results.csv",
+   "line_re": "^[^,]+,agent:[^,]+,\\d+,RESULT 9/9\\s*$"
+  },
+  "lab05_live": {
+   "file": "/tmp/agent-work/ssh-tool.log",
+   "line_re": "\\sRUN\\s+\\S+ :: "
+  },
+  "lab06_audit": {
+   "file": "/tmp/agent-work/audit-summary.txt"
+  },
+  "lab07_runs": {
+   "glob": "labs/lab07-poisoned-logs/results/*.csv",
+   "min": 1
+  },
+  "sandbox_settings": {
+   "file": "~/.srt-settings.json"
+  }
+ },
+ "delayed_quiz": [
+  {
+   "q": "Name Brendan Gregg's first five commands of the 60-second checklist, in order, and what each one is for.",
+   "a": "uptime (load averages, trend), dmesg | tail (OOM kills, I/O and driver errors), vmstat 1 (run queue, memory, swap, CPU split), mpstat -P ALL 1 (per-CPU imbalance), pidstat 1 (which process uses the CPU)."
+  },
+  {
+   "q": "df says the root filesystem is 100% full but du adds up to far less. What is the most likely cause and which command proves it?",
+   "a": "A deleted file still held open by a running process, often a log. lsof +L1 lists it; restart the process (or truncate through /proc/<pid>/fd/<n>) to free the space."
+  },
+  {
+   "q": "Where do you change a packaged unit's settings so the next package upgrade does not overwrite them, and how do you see the result?",
+   "a": "A drop-in under /etc/systemd/system/<unit>.d/override.conf, usually with systemctl edit <unit>; systemctl cat <unit> shows the merged unit, then daemon-reload and restart."
+  },
+  {
+   "q": "nvidia-smi says CUDA Version 12.4 and nvcc says 11.8. Is that a problem? Why?",
+   "a": "No. nvidia-smi prints the newest CUDA version the installed driver supports; nvcc prints the toolkit that is installed. A toolkit at or below the driver's supported version works."
+  },
+  {
+   "q": "In one sentence: what is the control that stops a hijacked agent from doing damage, and where does it live?",
+   "a": "A deterministic allowlist or write gate on the tool or the server (RBAC verbs, MCP read-only flags, the ssh-tool regex), not the model."
+  },
+  {
+   "q": "Why does the Lab 6 audit count come from the API server and not from HolmesGPT's own output?",
+   "a": "Agents misreport what they did. Independent monitoring cross-checks the agent's claims against system logs."
+  },
+  {
+   "q": "Name the two things run.sh validate proves before any timing counts.",
+   "a": "A no-op fails the hidden tests; the oracle solution passes them."
+  },
+  {
+   "q": "What does cgroup2fs tell you, and why does it matter for every lab here?",
+   "a": "The host runs the unified cgroup v2 hierarchy, which current systemd, Kubernetes kubelet and the MemoryHigh/MemoryMax limits in these labs depend on."
+  },
+  {
+   "q": "Which file in your sandbox config would have stopped an agent from finding a broadly scoped token in an unrelated file, and what line?",
+   "a": "A denyRead on credential paths and token files (for example **/*token*, **/.env, ~/.ssh) in the sandbox settings."
+  }
+ ]
+}

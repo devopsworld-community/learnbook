@@ -1,0 +1,27 @@
+# Gates that every agent-written change must pass before a human even reviews it.
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.0
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+      - id: terraform_checkov
+        args: ["--args=--config-file .checkov.yaml"]
+      - id: terraform_trivy
+        args: ["--args=--severity HIGH,CRITICAL --exit-code 1"]
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks: [{ id: shellcheck }]
+  - repo: local
+    hooks:
+      - id: package-existence-gate
+        name: refuse hallucinated or infant dependencies
+        entry: python3 labs/lab08-iac-gates/check_package.py --from-requirements
+        language: system
+        files: 'requirements.*\.txt$'
+      - id: assisted-by-trailer
+        name: require Assisted-by trailer when AGENT=1
+        entry: bash -c 'if [ "${AGENT:-0}" = 1 ]; then git log -1 --format=%B | grep -q "^Assisted-by: LLM" || { echo "missing Assisted-by: LLM [tool] trailer"; exit 1; }; fi'
+        language: system
+        stages: [commit-msg]
+        always_run: true

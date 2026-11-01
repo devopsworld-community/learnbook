@@ -1,0 +1,5 @@
+# I AM NOT DONE
+# /etc/sudoers.d/deploy
+# The deploy user only needs to restart and check app.service during a release.
+# Whoever wrote this gave it root for everything, without a password.
+deploy ALL=(ALL) NOPASSWD: ALL

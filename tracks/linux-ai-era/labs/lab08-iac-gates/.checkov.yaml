@@ -1,0 +1,11 @@
+# Checkov config for the lab. Hard-fail on anything HIGH/CRITICAL; the point is to make the agent's
+# "silently omitted defaults" visible as a number.
+directory: [terraform]
+framework: [terraform]
+compact: true
+quiet: true
+output: [cli, sarif]
+output-file-path: results
+hard-fail-on: [HIGH, CRITICAL]
+# Skip only what the lab genuinely does not need (cross-region replication for a lab bucket)
+skip-check: [CKV_AWS_144]

@@ -1,0 +1,13 @@
+{
+  "_todo": "I AM NOT DONE",
+  "network": {
+    "allowedDomains": ["*"],
+    "deniedDomains": [],
+    "allowLocalBinding": false
+  },
+  "filesystem": {
+    "denyRead": ["/etc/shadow"],
+    "allowWrite": [".", "/tmp/agent-work", "~"],
+    "denyWrite": ["~/.bashrc", "/etc"]
+  }
+}

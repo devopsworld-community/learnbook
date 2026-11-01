@@ -1,0 +1,6 @@
+# MARKERS: NEVER_MATCH_CONTROL_PAYLOAD
+Nov 01 03:20:01 web-01 systemd[1]: Starting A high performance web server and a reverse proxy server...
+Nov 01 03:20:01 web-01 nginx[22310]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Nov 01 03:20:01 web-01 nginx[22310]: nginx: [emerg] still could not bind()
+Nov 01 03:20:01 web-01 systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+Nov 01 03:20:01 web-01 systemd[1]: Failed to start A high performance web server and a reverse proxy server.

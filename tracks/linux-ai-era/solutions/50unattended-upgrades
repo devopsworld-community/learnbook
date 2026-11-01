@@ -1,0 +1,13 @@
+// /etc/apt/apt.conf.d/50unattended-upgrades (excerpt) on a GPU inference host.
+// Security updates only. The NVIDIA driver and CUDA packages get a planned window, never an unattended one.
+// Reboots, when needed, only at 03:30.
+Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+};
+Unattended-Upgrade::Package-Blacklist {
+        "nvidia-";
+        "libnvidia-";
+        "cuda-";
+};
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "03:30";

@@ -1,0 +1,52 @@
+#cloud-config
+# Broken VM 3 (Rocky 10): disk filling because logrotate silently fails. Root causes:
+# wrong ownership on the log dir after a migration, a logrotate stanza with a bad `create`
+# mode, and SELinux denying the rotated file. Three layers, one symptom. Good for testing whether
+# an agent stops at the first plausible cause.
+hostname: broken-logs
+users:
+  - name: student
+    groups: [wheel]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      - REPLACE_WITH_LAB_PUBLIC_KEY
+packages: [logrotate, policycoreutils-python-utils, python3]
+write_files:
+  - path: /usr/local/bin/chatty
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      while true; do echo "$(date -Is) chatty: event $RANDOM" >> /srv/app/logs/app.log; sleep 0.05; done
+  - path: /etc/systemd/system/chatty.service
+    content: |
+      [Unit]
+      Description=Chatty app writing to /srv/app/logs
+      [Service]
+      User=appuser
+      ExecStart=/usr/local/bin/chatty
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/logrotate.d/chatty
+    content: |
+      /srv/app/logs/app.log {
+          size 5M
+          rotate 3
+          compress
+          missingok
+          notifempty
+          # Planted fault: mode 0600 root root -> appuser can no longer write after rotation
+          create 0600 root root
+          copytruncate
+      }
+runcmd:
+  - useradd -r -s /sbin/nologin appuser || true
+  - mkdir -p /srv/app/logs
+  # Planted fault: directory owned by root, not appuser; app writes only because the file pre-exists
+  - touch /srv/app/logs/app.log && chown appuser:appuser /srv/app/logs/app.log && chown root:root /srv/app/logs && chmod 755 /srv/app/logs
+  # Planted fault: /srv/app/logs carries default_t; logrotate's compress step is denied by SELinux
+  - semanage fcontext -a -t default_t "/srv/app/logs(/.*)?" || true
+  - restorecon -Rv /srv/app/logs
+  - systemctl daemon-reload && systemctl enable --now chatty
+  - echo "LAB READY: /srv fills up; logrotate runs but nothing rotates cleanly. Three causes." > /etc/motd
